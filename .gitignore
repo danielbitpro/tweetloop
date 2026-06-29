@@ -1,0 +1,17 @@
+# Local data
+data/*.json
+data/tweets.json
+
+# Environment
+.env
+__pycache__/
+*.pyc
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

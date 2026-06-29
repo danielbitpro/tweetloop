@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tweet Reviewer</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #238636;
+            --accent-green-hover: #2ea043;
+            --accent-red: #da3633;
+            --accent-orange: #d29922;
+            --accent-purple: #bc8cff;
+            --accent-yellow: #e3b341;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .header-actions { display: flex; gap: 12px; }
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .btn:hover { background: var(--border-color); }
+        .btn-primary {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: #fff;
+        }
+        .btn-primary:hover { background: var(--accent-green-hover); }
+        .btn-sm { padding: 4px 12px; font-size: 12px; }
+        .btn-copy {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-copy:hover { background: var(--border-color); color: var(--text-primary); }
+        .btn-copy.copied { color: var(--accent-green); border-color: var(--accent-green); }
+        .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+        
+        /* Date Group Headers */
+        .date-group { margin-bottom: 32px; }
+        .date-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .date-header:hover { background: var(--bg-tertiary); }
+        .date-header .date-text { font-size: 16px; font-weight: 600; flex: 1; }
+        .date-header .count-badge {
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .date-header .toggle-icon { transition: transform 0.2s; color: var(--text-secondary); }
+        .date-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+        .date-tweets { overflow: hidden; transition: max-height 0.3s ease-out; }
+        .date-tweets.collapsed { max-height: 0 !important; }
+        
+        /* Tweet Card */
+        .tweet-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 3px solid var(--border-color);
+        }
+        .tweet-card.scheduled { border-left-color: var(--accent-orange); }
+        .tweet-card.approved { border-left-color: var(--accent-green); }
+        .tweet-card.posted { border-left-color: var(--accent-blue); opacity: 0.6; }
+        .tweet-card.verified { border-left-color: var(--accent-purple); }
+        .tweet-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .tweet-label {
+            font-size: 13px;
+            color: var(--accent-blue);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tweet-status { display: flex; gap: 8px; align-items: center; }
+        
+        /* Tweet text in code block */
+        .tweet-code-block {
+            position: relative;
+            margin-bottom: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .tweet-code-text {
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 14px 40px 14px 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+            color: var(--text-primary);
+        }
+        .btn-copy-block {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            z-index: 1;
+        }
+        .btn-copy-block:hover { background: var(--border-color); color: var(--text-primary); }
+        
+        /* Copy modal */
+        .copy-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .copy-modal-overlay.active { display: flex; }
+        .copy-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .copy-modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .copy-modal-header h3 { font-size: 16px; }
+        .copy-modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+        .copy-modal-textarea {
+            width: 100%;
+            min-height: 150px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+            font-size: 14px;
+            padding: 12px;
+            line-height: 1.6;
+            resize: vertical;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .copy-modal-textarea:focus { outline: none; border-color: var(--accent-blue); }
+        .copy-modal-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .copy-modal-footer .hint { font-size: 12px; color: var(--text-muted); }
+        
+        .tweet-why {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            background: rgba(88, 166, 255, 0.08);
+            border-left: 3px solid var(--accent-blue);
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 12px;
+        }
+        .tweet-why strong { color: var(--accent-blue); }
+        .tweet-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+        .tweet-hashtags { color: var(--accent-green); }
+        .tweet-actions { display: flex; gap: 8px; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-badge.draft { background: var(--bg-tertiary); color: var(--text-secondary); }
+        .status-badge.scheduled { background: rgba(210, 153, 34, 0.2); color: var(--accent-orange); }
+        .status-badge.approved { background: rgba(35, 134, 54, 0.2); color: var(--accent-green); }
+        .status-badge.posted { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+        .status-badge.verified { background: rgba(188, 140, 255, 0.2); color: var(--accent-purple); }
+        .empty-state { text-align: center; padding: 48px; color: var(--text-secondary); }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; justify-content: center; align-items: center; }
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header { padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 16px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 8px 12px;
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 6px; color: var(--text-primary); font-size: 14px; font-family: inherit;
+        }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-blue); }
+        
+        /* Summary bar */
+        .summary-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .summary-item {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 12px 20px; text-align: center; flex: 1; min-width: 120px;
+        }
+        .summary-item .count { font-size: 24px; font-weight: 600; }
+        .summary-item .label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Tweet Reviewer</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="fetchTweets()">Refresh</button>
+            <button class="btn btn-primary" onclick="showModal('add-modal')">+ Add Tweet</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="summary-bar" class="summary-bar"></div>
+        <div id="tweet-list"></div>
+    </div>
+
+    <!-- Add Tweet Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add New Tweet</h3>
+                <button class="btn btn-secondary" onclick="hideModal('add-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Label (optional, e.g., "Local LLM", "AI Agents")</label>
+                    <input type="text" id="new-tweet-label" placeholder="Local LLM">
+                </div>
+                <div class="form-group">
+                    <label>Tweet Text</label>
+                    <textarea id="new-tweet-text" placeholder="Enter your tweet..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Why it works (optional)</label>
+                    <textarea id="new-tweet-why" placeholder="One sentence explaining why this tweet will resonate..." style="min-height: 60px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Schedule Time (Optional)</label>
+                    <input type="datetime-local" id="new-tweet-time">
+                </div>
+                <div class="form-group">
+                    <label>Hashtags (Optional)</label>
+                    <input type="text" id="new-tweet-hashtags" placeholder="#LocalAI #LLM">
+                </div>
+                <button class="btn btn-primary" onclick="addTweet()">Add Tweet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allTweets = {};
+
+        async function fetchTweets() {
+            const response = await fetch('/api/tweets');
+            const data = await response.json();
+            allTweets = data;
+            renderSummary(data);
+            renderAllDates(data);
+        }
+
+        function renderSummary(data) {
+            const container = document.getElementById('summary-bar');
+            let total = 0, draft = 0, approved = 0, posted = 0;
+            for (const date in data) {
+                data[date].forEach(t => {
+                    total++;
+                    if (t.status === 'draft') draft++;
+                    else if (t.status === 'approved') approved++;
+                    else if (t.status === 'posted') posted++;
+                });
+            }
+            container.innerHTML = `
+                <div class="summary-item"><div class="count">${total}</div><div class="label">Total</div></div>
+                <div class="summary-item"><div class="count" style="color: var(--text-secondary)">${draft}</div><div class="label">Drafts</div></div>
+                <div class="summary-item"><div class="count" style="color: var(--accent-green)">${approved}</div><div class="label">Approved</div></div>
+                <div class="summary-item"><div class="count" style="color: var(--accent-blue)">${posted}</div><div class="label">Posted</div></div>
+            `;
+        }
+
+        function renderAllDates(data) {
+            const container = document.getElementById('tweet-list');
+            const dates = Object.keys(data).sort((a, b) => b.localeCompare(a));
+            if (dates.length === 0) {
+                container.innerHTML = '<div class="empty-state">No tweets yet. Add one or fetch from pipeline.</div>';
+                return;
+            }
+            container.innerHTML = dates.map(date => {
+                const tweets = data[date];
+                const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+                return `
+                    <div class="date-group">
+                        <div class="date-header" onclick="toggleDate('${date}')">
+                            <span class="toggle-icon">▼</span>
+                            <span class="date-text">${displayDate}</span>
+                            <span class="count-badge">${tweets.length} tweets</span>
+                        </div>
+                        <div class="date-tweets" id="tweets-${date}">
+                            ${tweets.map(tweet => renderTweet(tweet)).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderTweet(tweet) {
+            const labelHtml = tweet.label ? `<span class="tweet-label">${escapeHtml(tweet.label)}</span>` : '';
+            const whyHtml = tweet.why_it_works ? 
+                `<div class="tweet-why"><strong>Why it works:</strong> ${escapeHtml(tweet.why_it_works)}</div>` : '';
+            const hashtagsHtml = tweet.hashtags ? `<span class="tweet-hashtags">${escapeHtml(tweet.hashtags)}</span>` : '';
+            return `
+                <div class="tweet-card ${tweet.status}">
+                    <div class="tweet-card-header">
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            ${labelHtml}
+                            <span class="status-badge ${tweet.status}">${tweet.status}</span>
+                        </div>
+                        <div class="tweet-status">
+                            ${tweet.section_number ? `<span style="color: var(--text-muted); font-size: 12px;">#${tweet.section_number}</span>` : ''}
+                            <button class="btn btn-sm btn-secondary" onclick="deleteTweet('${tweet.id}')">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Tweet text in code block with copy button -->
+                    <div class="tweet-code-block">
+                        <button class="btn-copy-block" onclick="copyTweetText('${tweet.id}', this)">Copy</button>
+                        <div class="tweet-code-text" id="text-${tweet.id}">${escapeHtml(tweet.text)}</div>
+                    </div>
+                    
+                    ${whyHtml}
+                    <div class="tweet-meta">
+                        <span>${hashtagsHtml} ${tweet.schedule_time ? 'Schedule: ' + formatDate(tweet.schedule_time) : ''} | Source: ${tweet.source || 'manual'}</span>
+                    </div>
+                    <div class="tweet-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="approveTweet('${tweet.id}')">Approve</button>
+                        <button class="btn btn-sm btn-secondary" onclick="postTweet('${tweet.id}')">Post</button>
+                        <button class="btn btn-sm btn-secondary" onclick="deleteTweet('${tweet.id}')">Delete</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleDate(date) {
+            const tweets = document.getElementById(`tweets-${date}`);
+            const header = tweets.previousElementSibling;
+            if (tweets.classList.contains('collapsed')) {
+                tweets.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+            } else {
+                tweets.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
+        }
+
+        // FIXED: Copy now opens a modal with selectable text directly
+        function copyTweetText(id, btn) {
+            const el = document.getElementById(`text-${id}`);
+            if (!el) return;
+            const text = el.textContent;
+            showCopyModal(text);
+        }
+        
+        function showCopyModal(text) {
+            let modal = document.getElementById('copy-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'copy-modal';
+                modal.className = 'copy-modal-overlay';
+                modal.innerHTML = `
+                    <div class="copy-modal">
+                        <div class="copy-modal-header">
+                            <h3>Copy Tweet</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="closeCopyModal()">Close</button>
+                        </div>
+                        <div class="copy-modal-body">
+                            <textarea class="copy-modal-textarea" id="copy-modal-textarea" readonly></textarea>
+                        </div>
+                        <div class="copy-modal-footer">
+                            <span class="hint">Text is already selected. Press Ctrl+C to copy.</span>
+                            <div class="copy-modal-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="closeCopyModal()">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeCopyModal();
+                });
+            }
+            
+            const textarea = document.getElementById('copy-modal-textarea');
+            textarea.value = text;
+            modal.classList.add('active');
+            textarea.focus();
+            textarea.select();
+        }
+        
+        function closeCopyModal() {
+            const modal = document.getElementById('copy-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        async function addTweet() {
+            const label = document.getElementById('new-tweet-label').value;
+            const text = document.getElementById('new-tweet-text').value;
+            const why = document.getElementById('new-tweet-why').value;
+            const time = document.getElementById('new-tweet-time').value;
+            const hashtags = document.getElementById('new-tweet-hashtags').value;
+            if (!text) { alert('Please enter tweet text'); return; }
+            const response = await fetch('/api/tweets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, label: label || null, why_it_works: why || null, schedule_time: time || null, hashtags, source: 'manual' })
+            });
+            const tweet = await response.json();
+            hideModal('add-modal');
+            document.getElementById('new-tweet-label').value = '';
+            document.getElementById('new-tweet-text').value = '';
+            document.getElementById('new-tweet-why').value = '';
+            document.getElementById('new-tweet-time').value = '';
+            document.getElementById('new-tweet-hashtags').value = '';
+            fetchTweets();
+        }
+
+        async function approveTweet(id) {
+            await fetch(`/api/tweets/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'approved', schedule_time: null })
+            });
+            fetchTweets();
+        }
+
+        async function postTweet(id) {
+            await fetch(`/api/tweets/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'posted' })
+            });
+            fetchTweets();
+        }
+
+        async function deleteTweet(id) {
+            if (confirm('Delete this tweet?')) {
+                await fetch(`/api/tweets/${id}`, { method: 'DELETE' });
+                fetchTweets();
+            }
+        }
+
+        function showModal(id) { document.getElementById(id).classList.add('active'); }
+        function hideModal(id) { document.getElementById(id).classList.remove('active'); }
+        function formatDate(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString(); }
+
+        fetchTweets();
+    </script>
+</body>
+</html>
