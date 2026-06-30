@@ -7,13 +7,40 @@ import json
 import os
 import uuid
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, make_response, session
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 # Configuration
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'tweets.json')
 PORT = int(os.environ.get('PORT', 7777))
+
+# Optional password authentication via .env
+def get_password():
+    """Load password from .env file if it exists."""
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('REVIEWER_PASSWORD='):
+                    return line.split('=', 1)[1].strip().strip('"').strip("'")
+    return os.environ.get('REVIEWER_PASSWORD', '')
+
+PASSWORD_HASH = get_password()
+
+def require_auth(f):
+    """Decorator to require authentication if password is set."""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not PASSWORD_HASH:
+            return f(*args, **kwargs)
+        if not session.get('authenticated'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
 
 def load_tweets():
     if not os.path.exists(DATA_FILE):
@@ -33,7 +60,29 @@ def save_tweets(tweets):
 def index():
     return render_template('index.html')
 
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    entered_password = data.get('password', '') if data else ''
+    if not PASSWORD_HASH:
+        session['authenticated'] = True
+        return jsonify({'status': 'authenticated'})
+    if entered_password == PASSWORD_HASH:
+        session['authenticated'] = True
+        return jsonify({'status': 'authenticated'})
+    return jsonify({'status': 'unauthorized', 'error': 'Invalid password'}), 401
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    session.pop('authenticated', None)
+    return jsonify({'status': 'logged_out'})
+
+@app.route('/api/status')
+def status():
+    return jsonify({'authenticated': session.get('authenticated', False), 'auth_required': bool(PASSWORD_HASH)})
+
 @app.route('/api/tweets', methods=['GET'])
+@require_auth
 def get_tweets():
     tweets = load_tweets()
     # Group by date for frontend
@@ -52,6 +101,7 @@ def get_tweets():
     return jsonify(sorted_tweets)
 
 @app.route('/api/tweets', methods=['POST'])
+@require_auth
 def add_tweet():
     data = request.json
     new_tweet = {
