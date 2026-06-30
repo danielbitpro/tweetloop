@@ -123,6 +123,7 @@ def add_tweet():
     return jsonify(new_tweet), 201
 
 @app.route('/api/tweets/<tweet_id>', methods=['PUT'])
+@require_auth
 def update_tweet(tweet_id):
     tweets = load_tweets()
     for tweet in tweets:
@@ -133,6 +134,7 @@ def update_tweet(tweet_id):
     return jsonify({'error': 'Tweet not found'}), 404
 
 @app.route('/api/tweets/<tweet_id>', methods=['DELETE'])
+@require_auth
 def delete_tweet(tweet_id):
     tweets = load_tweets()
     new_tweets = [t for t in tweets if t['id'] != tweet_id]

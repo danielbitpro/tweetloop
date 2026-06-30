@@ -214,6 +214,15 @@
         async function fetchTweets() {
             try {
                 const response = await fetch('/api/tweets');
+                if (response.status === 401) {
+                    localStorage.removeItem('reviewer_auth');
+                    isLoggedIn = false;
+                    document.getElementById('login-overlay').classList.add('active');
+                    document.getElementById('login-password').focus();
+                    document.getElementById('uplink-status').textContent = 'UNAUTH';
+                    document.getElementById('uplink-status').className = 'status-warn';
+                    return;
+                }
                 const data = await response.json();
                 allTweets = data;
                 renderSummary(data);
