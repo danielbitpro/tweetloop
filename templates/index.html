@@ -4,312 +4,1012 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tweet Reviewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
-            --border-color: #30363d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --text-muted: #6e7681;
-            --accent-blue: #58a6ff;
-            --accent-green: #238636;
-            --accent-green-hover: #2ea043;
-            --accent-red: #da3633;
-            --accent-orange: #d29922;
-            --accent-purple: #bc8cff;
-            --accent-yellow: #e3b341;
+            --bg-deep: #050505;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #0f0f0f;
+            --bg-tertiary: #141414;
+            --bg-terminal: #0c110c;
+            --border-color: #1a2a1a;
+            --border-dim: #0f1f0f;
+            --text-primary: #00ff41;
+            --text-secondary: #00cc33;
+            --text-muted: #006620;
+            --text-dim: #003d10;
+            --accent-cyan: #00e5ff;
+            --accent-green: #00ff41;
+            --accent-red: #ff3333;
+            --accent-orange: #ff8800;
+            --accent-yellow: #ffff00;
+            --accent-white: #c0c0c0;
+            --font-mono: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Consolas, monospace;
         }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
+            font-family: var(--font-mono);
+            background: var(--bg-deep);
             color: var(--text-primary);
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
         }
+
+        /* Scan-line overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 65, 0.015) 2px,
+                rgba(0, 255, 65, 0.015) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Header / Terminal Status Bar */
         .header {
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
             border-bottom: 1px solid var(--border-color);
-            padding: 16px 24px;
+            padding: 0;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            align-items: stretch;
             position: sticky;
             top: 0;
             z-index: 100;
         }
-        .header h1 { font-size: 20px; font-weight: 600; }
-        .header-actions { display: flex; gap: 12px; }
-        .btn {
-            padding: 8px 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
+
+        .header-terminal-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 6px 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
         }
-        .btn:hover { background: var(--border-color); }
-        .btn-primary {
+
+        .header-terminal-bar .prompt { color: var(--accent-green); }
+        .header-terminal-bar .status-ok { color: var(--accent-green); }
+        .header-terminal-bar .status-warn { color: var(--accent-orange); }
+        .header-terminal-bar .cursor-blink {
+            display: inline-block;
+            width: 6px;
+            height: 12px;
             background: var(--accent-green);
-            border-color: var(--accent-green);
-            color: #fff;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 2px;
         }
-        .btn-primary:hover { background: var(--accent-green-hover); }
-        .btn-sm { padding: 4px 12px; font-size: 12px; }
-        .btn-copy {
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .header-main {
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .header-title .prefix { color: var(--text-muted); }
+        .header-title .accent { color: var(--accent-cyan); }
+
+        .header-actions { display: flex; gap: 8px; }
+
+        /* Buttons — terminal box style */
+        .btn {
+            padding: 6px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.15s;
             background: var(--bg-tertiary);
             color: var(--text-secondary);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: transparent;
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-green);
+            color: var(--bg-deep);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+
+        .btn-sm { padding: 3px 10px; font-size: 10px; }
+
+        .btn-danger {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-red);
+            color: var(--bg-deep);
+        }
+
+        .btn-cyan {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .btn-cyan:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-deep);
+        }
+
+        .btn-copy {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
             border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 4px 10px;
-            font-size: 11px;
+            border-radius: 0;
+            padding: 3px 10px;
+            font-size: 10px;
             cursor: pointer;
             transition: all 0.15s;
+            font-family: var(--font-mono);
         }
-        .btn-copy:hover { background: var(--border-color); color: var(--text-primary); }
-        .btn-copy.copied { color: var(--accent-green); border-color: var(--accent-green); }
-        .container { max-width: 960px; margin: 0 auto; padding: 24px; }
-        
+
+        .btn-copy:hover {
+            background: var(--border-color);
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .btn-copy.copied {
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        /* Container */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Summary Bar — Terminal Stats */
+        .summary-bar {
+            display: flex;
+            gap: 0;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .summary-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px 16px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .summary-item:last-child { border-right: none; }
+
+        .summary-item .count {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .summary-item .label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .summary-item.total .count { color: var(--text-primary); }
+        .summary-item.draft .count { color: var(--accent-orange); }
+        .summary-item.approved .count { color: var(--accent-green); }
+        .summary-item.posted .count { color: var(--accent-cyan); }
+
         /* Date Group Headers */
-        .date-group { margin-bottom: 32px; }
+        .date-group { margin-bottom: 24px; }
+
         .date-header {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 16px;
+            padding: 8px 14px;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 16px;
             cursor: pointer;
             user-select: none;
-            transition: background 0.2s;
-        }
-        .date-header:hover { background: var(--bg-tertiary); }
-        .date-header .date-text { font-size: 16px; font-weight: 600; flex: 1; }
-        .date-header .count-badge {
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 12px;
+            transition: background 0.15s;
             font-size: 12px;
-            color: var(--text-secondary);
         }
-        .date-header .toggle-icon { transition: transform 0.2s; color: var(--text-secondary); }
+
+        .date-header:hover { background: var(--bg-tertiary); }
+
+        .date-header .toggle-icon {
+            font-size: 10px;
+            color: var(--accent-green);
+            transition: transform 0.2s;
+            width: 14px;
+        }
+
         .date-header.collapsed .toggle-icon { transform: rotate(-90deg); }
-        .date-tweets { overflow: hidden; transition: max-height 0.3s ease-out; }
-        .date-tweets.collapsed { max-height: 0 !important; }
-        
-        /* Tweet Card */
-        .tweet-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 16px;
-            border-left: 3px solid var(--border-color);
+
+        .date-header .date-text {
+            flex: 1;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
         }
-        .tweet-card.scheduled { border-left-color: var(--accent-orange); }
-        .tweet-card.approved { border-left-color: var(--accent-green); }
-        .tweet-card.posted { border-left-color: var(--accent-blue); opacity: 0.6; }
-        .tweet-card.verified { border-left-color: var(--accent-purple); }
+
+        .date-header .count-badge {
+            border: 1px solid var(--border-color);
+            padding: 1px 8px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .date-tweets {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .date-tweets.collapsed { max-height: 0 !important; }
+
+        /* Tweet Card — Terminal Window Style */
+        .tweet-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .tweet-card.scheduled { border-color: var(--accent-orange); }
+        .tweet-card.approved { border-color: var(--accent-green); }
+        .tweet-card.posted { border-color: var(--accent-cyan); }
+        .tweet-card.verified { border-color: var(--accent-purple); }
+        .tweet-card.manual { border-color: var(--accent-white); }
+
+        /* Terminal window top bar for tweet card */
         .tweet-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
         }
+
+        .tweet-card-header .left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .tweet-card-header .right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
         .tweet-label {
-            font-size: 13px;
-            color: var(--accent-blue);
+            font-size: 10px;
+            color: var(--accent-cyan);
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .tweet-status { display: flex; gap: 8px; align-items: center; }
-        
+
+        /* Status badges — square terminal tags */
+        .status-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            font-size: 9px;
+            font-weight: 600;
+            border: 1px solid;
+        }
+
+        .status-badge.draft { background: transparent; border-color: var(--accent-orange); color: var(--accent-orange); }
+        .status-badge.scheduled { background: rgba(255, 136, 0, 0.1); border-color: var(--accent-orange); color: var(--accent-orange); }
+        .status-badge.approved { background: rgba(0, 255, 65, 0.1); border-color: var(--accent-green); color: var(--accent-green); }
+        .status-badge.posted { background: rgba(0, 229, 255, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .status-badge.verified { background: rgba(188, 140, 255, 0.1); border-color: var(--accent-purple); color: var(--accent-purple); }
+        .status-badge.manual { background: rgba(192, 192, 192, 0.1); border-color: var(--accent-white); color: var(--accent-white); }
+
         /* Tweet text in code block */
         .tweet-code-block {
             position: relative;
-            margin-bottom: 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+            background: var(--bg-terminal);
+            border: 1px solid var(--border-dim);
+            border-top: none;
             overflow: hidden;
         }
+
         .tweet-code-text {
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
-            font-size: 14px;
+            font-family: var(--font-mono);
+            font-size: 13px;
             line-height: 1.6;
-            padding: 14px 40px 14px 14px;
+            padding: 12px 36px 12px 12px;
             white-space: pre-wrap;
             word-break: break-word;
             max-height: 300px;
             overflow-y: auto;
             color: var(--text-primary);
+            background: transparent;
         }
+
         .btn-copy-block {
             position: absolute;
             top: 6px;
             right: 6px;
-            background: var(--bg-primary);
+            background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 3px 8px;
-            font-size: 11px;
-            color: var(--text-secondary);
+            padding: 2px 8px;
+            font-size: 9px;
+            color: var(--text-muted);
             cursor: pointer;
             transition: all 0.15s;
             z-index: 1;
+            font-family: var(--font-mono);
         }
-        .btn-copy-block:hover { background: var(--border-color); color: var(--text-primary); }
-        
-        /* Copy modal */
-        .copy-modal-overlay {
-            display: none;
+
+        .btn-copy-block:hover {
+            background: var(--border-color);
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        /* Copied notification — inline, no modal */
+        .copied-toast {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
+            bottom: 24px;
+            right: 24px;
+            background: var(--accent-green);
+            color: var(--bg-deep);
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 10000;
+            border: 0;
+            font-family: var(--font-mono);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease-out;
+            pointer-events: none;
         }
-        .copy-modal-overlay.active { display: flex; }
-        .copy-modal {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
+
+        .copied-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
         }
-        .copy-modal-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .copy-modal-header h3 { font-size: 16px; }
-        .copy-modal-body { padding: 16px; overflow-y: auto; flex: 1; }
-        .copy-modal-textarea {
-            width: 100%;
-            min-height: 150px;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
-            font-size: 14px;
-            padding: 12px;
-            line-height: 1.6;
-            resize: vertical;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .copy-modal-textarea:focus { outline: none; border-color: var(--accent-blue); }
-        .copy-modal-footer {
-            padding: 12px 16px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .copy-modal-footer .hint { font-size: 12px; color: var(--text-muted); }
-        
+
+        /* Why it works annotation */
         .tweet-why {
-            font-size: 13px;
-            color: var(--text-secondary);
+            font-size: 11px;
+            color: var(--text-muted);
             padding: 8px 12px;
-            background: rgba(88, 166, 255, 0.08);
-            border-left: 3px solid var(--accent-blue);
-            border-radius: 0 6px 6px 0;
-            margin-bottom: 12px;
+            background: rgba(0, 229, 255, 0.04);
+            border-top: 1px solid var(--border-dim);
+            font-family: var(--font-mono);
         }
-        .tweet-why strong { color: var(--accent-blue); }
+
+        .tweet-why strong { color: var(--accent-cyan); }
+
         .tweet-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
+            padding: 6px 12px;
+            font-size: 10px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            font-family: var(--font-mono);
         }
+
         .tweet-hashtags { color: var(--accent-green); }
-        .tweet-actions { display: flex; gap: 8px; }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
+
+        .tweet-actions {
+            display: flex;
+            gap: 4px;
+            padding: 6px 12px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
         }
-        .status-badge.draft { background: var(--bg-tertiary); color: var(--text-secondary); }
-        .status-badge.scheduled { background: rgba(210, 153, 34, 0.2); color: var(--accent-orange); }
-        .status-badge.approved { background: rgba(35, 134, 54, 0.2); color: var(--accent-green); }
-        .status-badge.posted { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
-        .status-badge.verified { background: rgba(188, 140, 255, 0.2); color: var(--accent-purple); }
-        .empty-state { text-align: center; padding: 48px; color: var(--text-secondary); }
-        
+
+        /* Character counter */
+        .char-counter {
+            font-size: 9px;
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-top: 1px solid var(--border-dim);
+            font-family: var(--font-mono);
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+        .char-counter .count { font-weight: 600; }
+        .char-counter .count.safe { color: var(--accent-green); }
+        .char-counter .count.warn { color: var(--accent-orange); }
+        .char-counter .count.over { color: var(--accent-red); }
+        .char-counter .progress-bar {
+            width: 80px;
+            height: 3px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+        }
+        .char-counter .progress-bar .fill {
+            height: 100%;
+            background: var(--accent-green);
+            transition: width 0.2s, background 0.2s;
+        }
+        .char-counter .progress-bar .fill.warn { background: var(--accent-orange); }
+        .char-counter .progress-bar .fill.over { background: var(--accent-red); }
+
+        /* Search & Filter Bar */
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 5px rgba(0, 255, 65, 0.1);
+        }
+
+        .search-input::placeholder { color: var(--text-dim); }
+
+        .filter-select {
+            padding: 6px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-family: var(--font-mono);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            border-color: var(--accent-green);
+        }
+
+        .filter-select option {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        /* Bulk action bar */
+        .bulk-bar {
+            display: none;
+            padding: 8px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-cyan);
+            margin-bottom: 16px;
+            font-size: 11px;
+            color: var(--accent-cyan);
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bulk-bar.active { display: flex; }
+
+        .bulk-bar .bulk-count {
+            font-weight: 600;
+        }
+
+        .bulk-bar .bulk-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Checkbox style */
+        .tweet-checkbox {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tweet-checkbox:checked {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .tweet-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--bg-deep);
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Manual post checkbox */
+        .manual-post-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--accent-white);
+            cursor: pointer;
+        }
+
+        .manual-post-toggle input {
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--accent-white);
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .manual-post-toggle input:checked {
+            background: var(--accent-white);
+        }
+
+        .manual-post-toggle input:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--bg-deep);
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        /* Modal — terminal style */
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.85);
             z-index: 1000;
         }
+
         .modal-overlay.active { display: flex; justify-content: center; align-items: center; }
+
         .modal {
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
             overflow-y: auto;
         }
-        .modal-header { padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+
+        .modal-header {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
         .modal-body { padding: 16px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); }
-        .form-group input, .form-group textarea {
-            width: 100%; padding: 8px 12px;
-            background: var(--bg-tertiary); border: 1px solid var(--border-color);
-            border-radius: 6px; color: var(--text-primary); font-size: 14px; font-family: inherit;
+
+        .form-group { margin-bottom: 14px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .form-group textarea { min-height: 120px; resize: vertical; }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-blue); }
-        
-        /* Summary bar */
-        .summary-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-        .summary-item {
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 8px; padding: 12px 20px; text-align: center; flex: 1; min-width: 120px;
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: var(--font-mono);
         }
-        .summary-item .count { font-size: 24px; font-weight: 600; }
-        .summary-item .label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-dim);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .empty-state .prompt { color: var(--accent-green); }
+
+        /* Export dropdown */
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .export-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            z-index: 200;
+            min-width: 140px;
+        }
+
+        .export-menu.active { display: block; }
+
+        .export-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 8px 14px;
+            background: none;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .export-menu button:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .export-menu button:last-child { border-bottom: none; }
+
+        /* Tweet Preview Modal */
+        .preview-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            font-family: var(--font-mono);
+        }
+
+        .preview-card .preview-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .preview-card .avatar-placeholder {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .preview-card .preview-user {
+            flex: 1;
+        }
+
+        .preview-card .preview-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .preview-card .preview-handle {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .preview-card .preview-text {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .preview-card .preview-meta {
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+        }
+
+        /* Audit log panel */
+        .audit-panel {
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            margin-bottom: 16px;
+        }
+
+        .audit-panel-header {
+            padding: 8px 14px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .audit-panel-header:hover { background: var(--bg-tertiary); }
+
+        .audit-panel-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s;
+        }
+
+        .audit-panel-body.open { max-height: 500px; }
+
+        .audit-entry {
+            padding: 6px 14px;
+            font-size: 10px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-dim);
+            font-family: var(--font-mono);
+        }
+
+        .audit-entry .timestamp { color: var(--text-dim); }
+        .audit-entry .action { color: var(--accent-green); }
+        .audit-entry .details { color: var(--accent-cyan); }
+
+        /* Scrollbar — terminal green */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 0;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Login screen */
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-deep);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-overlay.active { display: flex; }
+
+        .login-box {
+            background: var(--bg-primary);
+            border: 1px solid var(--accent-green);
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-box h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+
+        .login-box .login-error {
+            color: var(--accent-red);
+            font-size: 11px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Schedule editor */
+        .schedule-edit {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-size: 10px;
+        }
+
+        .schedule-edit input {
+            padding: 3px 6px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            width: 140px;
+        }
+
+        .schedule-edit input:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .header-main { padding: 8px 12px; }
+            .container { padding: 12px; }
+            .summary-bar { flex-wrap: wrap; }
+            .summary-item { min-width: 80px; }
+            .tweet-actions { flex-wrap: wrap; }
+            .search-bar { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
+    <div class="login-overlay" id="login-overlay">
+        <div class="login-box">
+            <h2>> ACCESS_REQUIRED</h2>
+            <input type="password" id="login-password" placeholder="Enter password..." autofocus>
+            <button class="btn btn-primary" style="width:100%;" onclick="attemptLogin()">AUTHENTICATE</button>
+            <div class="login-error" id="login-error">ACCESS DENIED</div>
+        </div>
+    </div>
+
+    <!-- Main App -->
     <div class="header">
-        <h1>Tweet Reviewer</h1>
-        <div class="header-actions">
-            <button class="btn btn-secondary" onclick="fetchTweets()">Refresh</button>
-            <button class="btn btn-primary" onclick="showModal('add-modal')">+ Add Tweet</button>
+        <div class="header-terminal-bar">
+            <span class="prompt">SYS://</span>
+            <span>TWEET_REVIEWER</span>
+            <span>|</span>
+            <span>UPLINK:</span>
+            <span id="uplink-status" class="status-ok">OK</span>
+            <span>|</span>
+            <span>TWEETS:</span>
+            <span id="uplink-count">0</span>
+            <span class="cursor-blink"></span>
+        </div>
+        <div class="header-main">
+            <div class="header-title">
+                <span class="prefix">&gt;</span> <span class="accent">TWEET</span>_REVIEWER
+            </div>
+            <div class="header-actions">
+                <button class="btn" onclick="fetchTweets()">REFRESH</button>
+                <button class="btn btn-primary" onclick="showModal('add-modal')">+ NEW</button>
+                <div class="export-dropdown">
+                    <button class="btn" onclick="toggleExportMenu()">EXPORT</button>
+                    <div class="export-menu" id="export-menu">
+                        <button onclick="exportApproved('raw')">→ APPROVED (RAW)</button>
+                        <button onclick="exportApproved('csv')">→ APPROVED (CSV)</button>
+                        <button onclick="exportAll('json')">→ ALL (JSON)</button>
+                        <button onclick="exportAll('csv')">→ ALL (CSV)</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="container">
+        <!-- Summary Bar -->
         <div id="summary-bar" class="summary-bar"></div>
+
+        <!-- Search & Filter Bar -->
+        <div class="search-bar">
+            <input type="text" class="search-input" id="search-input" placeholder="> SEARCH TWEETS..." oninput="renderFilteredTweets()">
+            <select class="filter-select" id="filter-status" onchange="renderFilteredTweets()">
+                <option value="">[ALL STATUS]</option>
+                <option value="draft">[DRAFT]</option>
+                <option value="approved">[APPROVED]</option>
+                <option value="scheduled">[SCHEDULED]</option>
+                <option value="posted">[POSTED]</option>
+                <option value="manual">[MANUAL]</option>
+            </select>
+            <select class="filter-select" id="filter-label" onchange="renderFilteredTweets()">
+                <option value="">[ALL LABELS]</option>
+            </select>
+            <button class="btn btn-sm" onclick="toggleBulkMode()" id="bulk-mode-btn">[BULK]</button>
+        </div>
+
+        <!-- Bulk Action Bar -->
+        <div class="bulk-bar" id="bulk-bar">
+            <span><span class="bulk-count" id="bulk-count">0</span> selected</span>
+            <div class="bulk-actions">
+                <button class="btn btn-sm btn-danger" onclick="bulkDelete()">DELETE</button>
+                <button class="btn btn-sm btn-cyan" onclick="bulkApprove()">APPROVE</button>
+            </div>
+        </div>
+
+        <!-- Tweet List -->
         <div id="tweet-list"></div>
     </div>
 
@@ -317,44 +1017,146 @@
     <div class="modal-overlay" id="add-modal">
         <div class="modal">
             <div class="modal-header">
-                <h3>Add New Tweet</h3>
-                <button class="btn btn-secondary" onclick="hideModal('add-modal')">X</button>
+                <span>> ADD_NEW_TWEET</span>
+                <button class="btn btn-sm" onclick="hideModal('add-modal')">X</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Label (optional, e.g., "Local LLM", "AI Agents")</label>
+                    <label>Label</label>
                     <input type="text" id="new-tweet-label" placeholder="Local LLM">
                 </div>
                 <div class="form-group">
                     <label>Tweet Text</label>
-                    <textarea id="new-tweet-text" placeholder="Enter your tweet..."></textarea>
+                    <textarea id="new-tweet-text" placeholder="Enter your tweet..." oninput="updateNewCharCount()"></textarea>
+                    <div class="char-counter" id="new-char-counter">
+                        <span class="count" id="new-char-count">0</span>
+                        <span>/ 280</span>
+                        <div class="progress-bar"><div class="fill" id="new-char-bar"></div></div>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Why it works (optional)</label>
-                    <textarea id="new-tweet-why" placeholder="One sentence explaining why this tweet will resonate..." style="min-height: 60px;"></textarea>
+                    <label>Why it works</label>
+                    <textarea id="new-tweet-why" placeholder="Why this will resonate..." style="min-height: 60px;"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Schedule Time (Optional)</label>
+                    <label>Schedule Time</label>
                     <input type="datetime-local" id="new-tweet-time">
                 </div>
                 <div class="form-group">
-                    <label>Hashtags (Optional)</label>
+                    <label>Hashtags</label>
                     <input type="text" id="new-tweet-hashtags" placeholder="#LocalAI #LLM">
                 </div>
-                <button class="btn btn-primary" onclick="addTweet()">Add Tweet</button>
+                <button class="btn btn-primary" onclick="addTweet()">ADD_TWEET</button>
             </div>
         </div>
     </div>
 
+    <!-- Copy Modal (for preview) -->
+    <div class="copy-modal-overlay" id="copy-modal">
+        <div class="copy-modal">
+            <div class="copy-modal-header">
+                <span>> COPY_TWEET</span>
+                <button class="btn btn-sm" onclick="closeCopyModal()">X</button>
+            </div>
+            <div class="copy-modal-body">
+                <textarea class="copy-modal-textarea" id="copy-modal-textarea" readonly></textarea>
+            </div>
+            <div class="copy-modal-footer">
+                <span class="hint">SELECT_TEXT → CTRL+C</span>
+                <button class="btn btn-sm" onclick="closeCopyModal()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tweet Preview Modal -->
+    <div class="modal-overlay" id="preview-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>> X_PREVIEW</span>
+                <button class="btn btn-sm" onclick="hideModal('preview-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-card" id="preview-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copied Toast -->
+    <div class="copied-toast" id="copied-toast">> COPIED_TO_CLIPBOARD</div>
+
     <script>
         let allTweets = {};
+        let bulkMode = false;
+
+        // LOGIN
+        let isLoggedIn = false;
+        function checkLogin() {
+            if (localStorage.getItem('reviewer_auth') === 'true') {
+                isLoggedIn = true;
+            }
+            if (!isLoggedIn) {
+                document.getElementById('login-overlay').classList.add('active');
+                document.getElementById('login-password').focus();
+            } else {
+                init();
+            }
+        }
+
+        function attemptLogin() {
+            const password = document.getElementById('login-password').value;
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'authenticated') {
+                    localStorage.setItem('reviewer_auth', 'true');
+                    isLoggedIn = true;
+                    document.getElementById('login-overlay').classList.remove('active');
+                    init();
+                } else {
+                    document.getElementById('login-error').style.display = 'block';
+                }
+            })
+            .catch(() => {
+                document.getElementById('login-error').style.display = 'block';
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.getElementById('login-overlay').classList.contains('active')) {
+                attemptLogin();
+            }
+        });
+
+        // INIT
+        function init() {
+            fetchTweets();
+            populateLabels();
+        }
 
         async function fetchTweets() {
-            const response = await fetch('/api/tweets');
-            const data = await response.json();
-            allTweets = data;
-            renderSummary(data);
-            renderAllDates(data);
+            try {
+                const response = await fetch('/api/tweets');
+                const data = await response.json();
+                allTweets = data;
+                renderSummary(data);
+                renderAllDates(data);
+                document.getElementById('uplink-count').textContent = getTweetCount(data);
+                document.getElementById('uplink-status').textContent = 'OK';
+                document.getElementById('uplink-status').className = 'status-ok';
+            } catch (e) {
+                document.getElementById('uplink-status').textContent = 'ERR';
+                document.getElementById('uplink-status').className = 'status-warn';
+            }
+        }
+
+        function getTweetCount(data) {
+            let count = 0;
+            for (const date in data) count += data[date].length;
+            return count;
         }
 
         function renderSummary(data) {
@@ -369,22 +1171,61 @@
                 });
             }
             container.innerHTML = `
-                <div class="summary-item"><div class="count">${total}</div><div class="label">Total</div></div>
-                <div class="summary-item"><div class="count" style="color: var(--text-secondary)">${draft}</div><div class="label">Drafts</div></div>
-                <div class="summary-item"><div class="count" style="color: var(--accent-green)">${approved}</div><div class="label">Approved</div></div>
-                <div class="summary-item"><div class="count" style="color: var(--accent-blue)">${posted}</div><div class="label">Posted</div></div>
+                <div class="summary-item total"><div class="count">${total}</div><div class="label">Total</div></div>
+                <div class="summary-item draft"><div class="count">${draft}</div><div class="label">Drafts</div></div>
+                <div class="summary-item approved"><div class="count">${approved}</div><div class="label">Approved</div></div>
+                <div class="summary-item posted"><div class="count">${posted}</div><div class="label">Posted</div></div>
             `;
         }
 
-        function renderAllDates(data) {
+        function populateLabels() {
+            const select = document.getElementById('filter-label');
+            const labels = new Set();
+            for (const date in allTweets) {
+                allTweets[date].forEach(t => {
+                    if (t.label) labels.add(t.label);
+                });
+            }
+            const current = select.value;
+            select.innerHTML = '<option value="">[ALL LABELS]</option>';
+            labels.forEach(label => {
+                const opt = document.createElement('option');
+                opt.value = label;
+                opt.textContent = label;
+                select.appendChild(opt);
+            });
+            select.value = current;
+        }
+
+        function renderFilteredTweets() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('filter-status').value;
+            const labelFilter = document.getElementById('filter-label').value;
+
+            let filtered = {};
+            for (const date in allTweets) {
+                const filteredTweets = allTweets[date].filter(t => {
+                    if (statusFilter && t.status !== statusFilter) return false;
+                    if (labelFilter && t.label !== labelFilter) return false;
+                    if (search) {
+                        const searchable = [t.text, t.label, t.hashtags, t.why_it_works].join(' ').toLowerCase();
+                        if (!searchable.includes(search)) return false;
+                    }
+                    return true;
+                });
+                if (filteredTweets.length > 0) {
+                    filtered[date] = filteredTweets;
+                }
+            }
+
             const container = document.getElementById('tweet-list');
-            const dates = Object.keys(data).sort((a, b) => b.localeCompare(a));
+            const dates = Object.keys(filtered).sort((a, b) => b.localeCompare(a));
             if (dates.length === 0) {
-                container.innerHTML = '<div class="empty-state">No tweets yet. Add one or fetch from pipeline.</div>';
+                container.innerHTML = '<div class="empty-state"><span class="prompt">&gt;</span> NO_MATCHING_TWEETS_FOUND<span class="cursor-blink"></span></div>';
                 return;
             }
             container.innerHTML = dates.map(date => {
-                const tweets = data[date];
+                const tweets = filtered[date];
                 const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
                     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 });
@@ -393,7 +1234,7 @@
                         <div class="date-header" onclick="toggleDate('${date}')">
                             <span class="toggle-icon">▼</span>
                             <span class="date-text">${displayDate}</span>
-                            <span class="count-badge">${tweets.length} tweets</span>
+                            <span class="count-badge">${tweets.length} TWEETS</span>
                         </div>
                         <div class="date-tweets" id="tweets-${date}">
                             ${tweets.map(tweet => renderTweet(tweet)).join('')}
@@ -401,6 +1242,10 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        function renderAllDates(data) {
+            renderFilteredTweets();
         }
 
         function escapeHtml(text) {
@@ -411,62 +1256,86 @@
         }
 
         function renderTweet(tweet) {
+            const charLen = (tweet.text || '').length;
+            const charClass = charLen <= 260 ? 'safe' : charLen <= 280 ? 'warn' : 'over';
+            const charBarClass = charClass;
+            const percent = Math.min((charLen / 280) * 100, 100);
+
             const labelHtml = tweet.label ? `<span class="tweet-label">${escapeHtml(tweet.label)}</span>` : '';
-            const whyHtml = tweet.why_it_works ? 
-                `<div class="tweet-why"><strong>Why it works:</strong> ${escapeHtml(tweet.why_it_works)}</div>` : '';
+            const whyHtml = tweet.why_it_works ? `<div class="tweet-why"><strong>WHY_IT_WORKS:</strong> ${escapeHtml(tweet.why_it_works)}</div>` : '';
             const hashtagsHtml = tweet.hashtags ? `<span class="tweet-hashtags">${escapeHtml(tweet.hashtags)}</span>` : '';
+
+            const bulkCheck = bulkMode ? `<input type="checkbox" class="tweet-checkbox" data-id="${tweet.id}" onchange="updateBulkCount()">` : '';
+
+            const manualToggle = (tweet.status === 'manual') ?
+                `<span style="color: var(--accent-white); margin-right: 8px;">MANUAL_POSTED</span>` : '';
+
             return `
                 <div class="tweet-card ${tweet.status}">
                     <div class="tweet-card-header">
-                        <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="left">
+                            ${bulkCheck}
                             ${labelHtml}
                             <span class="status-badge ${tweet.status}">${tweet.status}</span>
+                            ${tweet.section_number ? `<span style="color: var(--text-dim);">#${tweet.section_number}</span>` : ''}
                         </div>
-                        <div class="tweet-status">
-                            ${tweet.section_number ? `<span style="color: var(--text-muted); font-size: 12px;">#${tweet.section_number}</span>` : ''}
-                            <button class="btn btn-sm btn-secondary" onclick="deleteTweet('${tweet.id}')">Delete</button>
+                        <div class="right">
+                            ${manualToggle}
+                            <button class="btn btn-sm" onclick="previewTweet('${tweet.id}')" style="border-color: var(--text-muted); color: var(--text-muted);">PREVIEW</button>
+                            <button class="btn btn-sm" onclick="deleteTweet('${tweet.id}')" style="border-color: var(--accent-red); color: var(--accent-red);">DEL</button>
                         </div>
                     </div>
-                    
-                    <!-- Tweet text in code block with copy button -->
+
                     <div class="tweet-code-block">
-                        <button class="btn-copy-block" onclick="copyTweetText('${tweet.id}', this)">Copy</button>
+                        <button class="btn-copy-block" onclick="copyTweetText('${tweet.id}', this)">COPY</button>
                         <div class="tweet-code-text" id="text-${tweet.id}">${escapeHtml(tweet.text)}</div>
                     </div>
-                    
+
+                    ${charLen > 0 ? `
+                    <div class="char-counter">
+                        <span class="count ${charClass}">${charLen}</span>
+                        <span>/ 280</span>
+                        <div class="progress-bar"><div class="fill ${charBarClass}" style="width: ${percent}%"></div></div>
+                    </div>` : ''}
+
                     ${whyHtml}
+
                     <div class="tweet-meta">
-                        <span>${hashtagsHtml} ${tweet.schedule_time ? 'Schedule: ' + formatDate(tweet.schedule_time) : ''} | Source: ${tweet.source || 'manual'}</span>
+                        <span>${hashtagsHtml} ${tweet.schedule_time ? 'SCHEDULE: ' + formatDate(tweet.schedule_time) : ''} | ${tweet.source || 'manual'}</span>
                     </div>
+
                     <div class="tweet-actions">
-                        <button class="btn btn-sm btn-secondary" onclick="approveTweet('${tweet.id}')">Approve</button>
-                        <button class="btn btn-sm btn-secondary" onclick="postTweet('${tweet.id}')">Post</button>
-                        <button class="btn btn-sm btn-secondary" onclick="deleteTweet('${tweet.id}')">Delete</button>
+                        <button class="btn btn-sm" onclick="approveTweet('${tweet.id}')">APPROVE</button>
+                        <button class="btn btn-sm" onclick="postTweet('${tweet.id}')">POST</button>
+                        <button class="btn btn-sm" onclick="toggleManualPost('${tweet.id}', this)">MANUAL_POST</button>
+                        <button class="btn btn-sm" onclick="editSchedule('${tweet.id}')">EDIT_SCHEDULE</button>
                     </div>
                 </div>
             `;
         }
 
-        function toggleDate(date) {
-            const tweets = document.getElementById(`tweets-${date}`);
-            const header = tweets.previousElementSibling;
-            if (tweets.classList.contains('collapsed')) {
-                tweets.classList.remove('collapsed');
-                header.classList.remove('collapsed');
-            } else {
-                tweets.classList.add('collapsed');
-                header.classList.add('collapsed');
-            }
-        }
-
-        // FIXED: Copy now opens a modal with selectable text directly
+        // Direct copy — no modal, just toast
         function copyTweetText(id, btn) {
             const el = document.getElementById(`text-${id}`);
             if (!el) return;
             const text = el.textContent;
-            showCopyModal(text);
+
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('copied-toast');
+                toast.classList.add('show');
+                btn.textContent = '✓ COPIED';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    btn.textContent = 'COPY';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                // Fallback: open modal if clipboard API fails
+                showCopyModal(text);
+            });
         }
-        
+
         function showCopyModal(text) {
             let modal = document.getElementById('copy-modal');
             if (!modal) {
@@ -476,17 +1345,15 @@
                 modal.innerHTML = `
                     <div class="copy-modal">
                         <div class="copy-modal-header">
-                            <h3>Copy Tweet</h3>
-                            <button class="btn btn-secondary btn-sm" onclick="closeCopyModal()">Close</button>
+                            <span>> COPY_TWEET</span>
+                            <button class="btn btn-sm" onclick="closeCopyModal()">X</button>
                         </div>
                         <div class="copy-modal-body">
                             <textarea class="copy-modal-textarea" id="copy-modal-textarea" readonly></textarea>
                         </div>
                         <div class="copy-modal-footer">
-                            <span class="hint">Text is already selected. Press Ctrl+C to copy.</span>
-                            <div class="copy-modal-actions">
-                                <button class="btn btn-secondary btn-sm" onclick="closeCopyModal()">Close</button>
-                            </div>
+                            <span class="hint">SELECT_TEXT → CTRL+C</span>
+                            <button class="btn btn-sm" onclick="closeCopyModal()">CLOSE</button>
                         </div>
                     </div>
                 `;
@@ -495,17 +1362,66 @@
                     if (e.target === modal) closeCopyModal();
                 });
             }
-            
+
             const textarea = document.getElementById('copy-modal-textarea');
             textarea.value = text;
             modal.classList.add('active');
             textarea.focus();
             textarea.select();
         }
-        
+
         function closeCopyModal() {
             const modal = document.getElementById('copy-modal');
             if (modal) modal.classList.remove('active');
+        }
+
+        // Tweet preview
+        function previewTweet(id) {
+            let tweet = null;
+            for (const date in allTweets) {
+                const found = allTweets[date].find(t => t.id === id);
+                if (found) { tweet = found; break; }
+            }
+            if (!tweet) return;
+
+            const text = (tweet.text || '').substring(0, 280);
+            const hashtags = tweet.hashtags || '';
+
+            document.getElementById('preview-content').innerHTML = `
+                <div class="preview-header">
+                    <div class="avatar-placeholder">DB</div>
+                    <div class="preview-user">
+                        <div class="preview-name">danielbitpro</div>
+                        <div class="preview-handle">@danielbitpro</div>
+                    </div>
+                </div>
+                <div class="preview-text">${escapeHtml(text)}${hashtags ? '<br><br>' + escapeHtml(hashtags) : ''}</div>
+                <div class="preview-meta">${new Date().toLocaleString()} · Web</div>
+            `;
+            showModal('preview-modal');
+        }
+
+        // Char counter for new tweet
+        function updateNewCharCount() {
+            const text = document.getElementById('new-tweet-text').value;
+            const len = text.length;
+            const countEl = document.getElementById('new-char-count');
+            const barEl = document.getElementById('new-char-bar');
+            const percent = Math.min((len / 280) * 100, 100);
+
+            countEl.textContent = len;
+            barEl.style.width = percent + '%';
+
+            if (len <= 260) {
+                countEl.className = 'count safe';
+                barEl.className = 'fill safe';
+            } else if (len <= 280) {
+                countEl.className = 'count warn';
+                barEl.className = 'fill warn';
+            } else {
+                countEl.className = 'count over';
+                barEl.className = 'fill over';
+            }
         }
 
         async function addTweet() {
@@ -514,7 +1430,9 @@
             const why = document.getElementById('new-tweet-why').value;
             const time = document.getElementById('new-tweet-time').value;
             const hashtags = document.getElementById('new-tweet-hashtags').value;
-            if (!text) { alert('Please enter tweet text'); return; }
+
+            if (!text) { alert('Enter tweet text'); return; }
+
             const response = await fetch('/api/tweets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -528,6 +1446,7 @@
             document.getElementById('new-tweet-time').value = '';
             document.getElementById('new-tweet-hashtags').value = '';
             fetchTweets();
+            populateLabels();
         }
 
         async function approveTweet(id) {
@@ -548,10 +1467,191 @@
             fetchTweets();
         }
 
+        async function toggleManualPost(id, btn) {
+            const card = btn.closest('.tweet-card');
+            const isManual = card.classList.contains('manual');
+
+            const newStatus = isManual ? 'draft' : 'manual';
+
+            await fetch(`/api/tweets/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            fetchTweets();
+        }
+
+        async function editSchedule(id) {
+            let tweet = null;
+            for (const date in allTweets) {
+                const found = allTweets[date].find(t => t.id === id);
+                if (found) { tweet = found; break; }
+            }
+            if (!tweet) return;
+
+            const newTime = prompt('Enter schedule time (YYYY-MM-DDTHH:MM):', tweet.schedule_time || '');
+            if (newTime === null) return;
+
+            if (newTime === '') {
+                await fetch(`/api/tweets/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'draft', schedule_time: null })
+                });
+            } else {
+                await fetch(`/api/tweets/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'scheduled', schedule_time: newTime })
+                });
+            }
+            fetchTweets();
+        }
+
         async function deleteTweet(id) {
-            if (confirm('Delete this tweet?')) {
+            if (confirm('DELETE this tweet?')) {
                 await fetch(`/api/tweets/${id}`, { method: 'DELETE' });
                 fetchTweets();
+                populateLabels();
+            }
+        }
+
+        // Bulk operations
+        function toggleBulkMode() {
+            bulkMode = !bulkMode;
+            const btn = document.getElementById('bulk-mode-btn');
+            const bar = document.getElementById('bulk-bar');
+
+            if (bulkMode) {
+                btn.textContent = '[BULK ACTIVE]';
+                btn.classList.add('btn-cyan');
+                bar.classList.add('active');
+            } else {
+                btn.textContent = '[BULK]';
+                btn.classList.remove('btn-cyan');
+                bar.classList.remove('active');
+            }
+            renderFilteredTweets();
+        }
+
+        function updateBulkCount() {
+            const checked = document.querySelectorAll('.tweet-checkbox:checked').length;
+            document.getElementById('bulk-count').textContent = checked;
+        }
+
+        async function bulkDelete() {
+            const checked = document.querySelectorAll('.tweet-checkbox:checked');
+            if (checked.length === 0) return;
+            if (!confirm(`Delete ${checked.length} tweets?`)) return;
+
+            for (const cb of checked) {
+                await fetch(`/api/tweets/${cb.dataset.id}`, { method: 'DELETE' });
+            }
+            toggleBulkMode();
+            fetchTweets();
+            populateLabels();
+        }
+
+        async function bulkApprove() {
+            const checked = document.querySelectorAll('.tweet-checkbox:checked');
+            if (checked.length === 0) return;
+
+            for (const cb of checked) {
+                await fetch(`/api/tweets/${cb.dataset.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'approved' })
+                });
+            }
+            toggleBulkMode();
+            fetchTweets();
+        }
+
+        // Export
+        function toggleExportMenu() {
+            const menu = document.getElementById('export-menu');
+            menu.classList.toggle('active');
+        }
+
+        // Close export menu on outside click
+        document.addEventListener('click', (e) => {
+            const dropdown = document.querySelector('.export-dropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                document.getElementById('export-menu').classList.remove('active');
+            }
+        });
+
+        function exportApproved(format) {
+            const approved = [];
+            for (const date in allTweets) {
+                allTweets[date].forEach(t => {
+                    if (t.status === 'approved') {
+                        approved.push(t);
+                    }
+                });
+            }
+            if (approved.length === 0) { alert('No approved tweets to export'); return; }
+            downloadFile(`approved-${new Date().toISOString().slice(0,10)}.${format}`, buildExport(approved, format));
+            toggleExportMenu();
+        }
+
+        function exportAll(format) {
+            const all = [];
+            for (const date in allTweets) {
+                allTweets[date].forEach(t => all.push(t));
+            }
+            if (all.length === 0) { alert('No tweets to export'); return; }
+            downloadFile(`all-${new Date().toISOString().slice(0,10)}.${format}`, buildExport(all, format));
+            toggleExportMenu();
+        }
+
+        function buildExport(tweets, format) {
+            if (format === 'json') {
+                return JSON.stringify(tweets, null, 2);
+            }
+            if (format === 'csv') {
+                const header = 'id,label,text,hashtags,status,schedule_time,source,date\n';
+                const rows = tweets.map(t => {
+                    return [
+                        t.id,
+                        `"${(t.label || '').replace(/"/g, '""')}"`,
+                        `"${(t.text || '').replace(/"/g, '""')}"`,
+                        `"${(t.hashtags || '').replace(/"/g, '""')}"`,
+                        t.status,
+                        t.schedule_time || '',
+                        t.source || '',
+                        t.date || ''
+                    ].join(',');
+                });
+                return header + rows.join('\n');
+            }
+            // raw format
+            return tweets.map(t => {
+                let line = (t.text || '');
+                if (t.hashtags) line += '\n' + t.hashtags;
+                return line;
+            }).join('\n\n---\n\n');
+        }
+
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleDate(date) {
+            const tweets = document.getElementById(`tweets-${date}`);
+            const header = tweets.previousElementSibling;
+            if (tweets.classList.contains('collapsed')) {
+                tweets.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+            } else {
+                tweets.classList.add('collapsed');
+                header.classList.add('collapsed');
             }
         }
 
@@ -559,7 +1659,8 @@
         function hideModal(id) { document.getElementById(id).classList.remove('active'); }
         function formatDate(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString(); }
 
-        fetchTweets();
+        // Check login on load
+        checkLogin();
     </script>
 </body>
 </html>
