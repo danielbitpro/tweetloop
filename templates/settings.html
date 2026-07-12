@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Tweet Reviewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .settings-container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .settings-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--text-muted);
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .settings-nav-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid var(--text-muted);
+            cursor: pointer;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+        }
+        .settings-nav-btn.active {
+            background: var(--accent-green);
+            color: #000;
+            border-color: var(--accent-green);
+        }
+        .settings-section {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--text-muted);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .settings-section.active {
+            display: block;
+        }
+        .settings-section h2 {
+            color: var(--accent-green);
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="password"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-dark);
+            border: 1px solid var(--text-muted);
+            color: var(--text-primary);
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .form-group .hint {
+            color: var(--text-dim);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-green);
+        }
+        .checkbox-group label {
+            margin-bottom: 0;
+            color: var(--text-primary);
+        }
+        .btn-save {
+            padding: 12px 24px;
+            background: var(--accent-green);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-save:hover {
+            opacity: 0.9;
+        }
+        .btn-danger {
+            padding: 12px 24px;
+            background: transparent;
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .back-link {
+            display: inline-block;
+            color: var(--text-dim);
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            color: var(--accent-green);
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: var(--accent-green);
+            color: #000;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+        }
+        .toast.show {
+            display: block;
+        }
+        .quota-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background: var(--bg-dark);
+            border: 1px solid var(--text-muted);
+            border-radius: 4px;
+        }
+        .quota-row label {
+            flex: 1;
+            margin-bottom: 0;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        .quota-row input[type="number"] {
+            width: 70px;
+            padding: 6px 8px;
+            background: var(--bg-dark);
+            border: 1px solid var(--text-muted);
+            color: var(--text-primary);
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+        .quota-row .quota-disabled {
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-overlay" id="login-overlay">
+        <div class="login-box">
+            <h2>> ACCESS_REQUIRED</h2>
+            <input type="password" id="login-password" placeholder="Enter password..." autofocus>
+            <button class="btn btn-primary" style="width:100%;" onclick="attemptLogin()">AUTHENTICATE</button>
+            <div class="login-error" id="login-error">ACCESS DENIED</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="/" class="back-link">← BACK TO REVIEWER</a>
+        <h1 style="color: var(--accent-green); margin-bottom: 20px;">⚙ SETTINGS</h1>
+
+        <div class="settings-nav" id="settings-nav">
+            <button class="settings-nav-btn active" data-section="app">App</button>
+            <button class="settings-nav-btn" data-section="research">Research</button>
+            <button class="settings-nav-btn" data-section="copywriter">Copywriter</button>
+            <button class="settings-nav-btn" data-section="export">Export</button>
+            <button class="settings-nav-btn" data-section="pipeline">Pipeline</button>
+        </div>
+
+        <!-- App Settings -->
+        <div class="settings-section active" id="section-app">
+            <h2>📱 App Settings</h2>
+            <div class="form-group">
+                <label>Theme</label>
+                <select id="setting-theme">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="system">System Default</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="setting-password" placeholder="Set password for login">
+                <div class="hint">Leave blank to disable password authentication</div>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="setting-remember-login">
+                <label for="setting-remember-login">Remember login</label>
+            </div>
+            <div class="form-group">
+                <label>Auto-refresh interval (minutes)</label>
+                <input type="number" id="setting-auto-refresh" value="5" min="1" max="60">
+            </div>
+            <div class="form-group">
+                <label>Max tweets per page</label>
+                <input type="number" id="setting-max-tweets" value="50" min="10" max="200">
+            </div>
+            <div class="form-group">
+                <label>Date format</label>
+                <select id="setting-date-format">
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                    <option value="YYYY/MM/DD">YYYY/MM/DD</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Research Settings -->
+        <div class="settings-section" id="section-research">
+            <h2>🔍 Research Sources</h2>
+            <div class="checkbox-group">
+                <input type="checkbox" id="source-twitter">
+                <label for="source-twitter">Twitter/X</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="source-arxiv">
+                <label for="source-arxiv">arXiv Papers</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="source-github_trending">
+                <label for="source-github_trending">GitHub Trending</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="source-reddit">
+                <label for="source-reddit">Reddit (r/MachineLearning, r/LocalLLaMA)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="source-huggingface">
+                <label for="source-huggingface">Hugging Face</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="source-youtube">
+                <label for="source-youtube">YouTube Transcripts</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="source-tech_blogs">
+                <label for="source-tech_blogs">Tech Blogs (VentureBeat, The Verge, etc.)</label>
+            </div>
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Custom Keywords (comma-separated)</label>
+                <input type="text" id="setting-keywords" placeholder="local AI, LLM, open source, inference">
+            </div>
+            <div class="form-group">
+                <label>Language Filter</label>
+                <select id="setting-language">
+                    <option value="en">English</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ja">Japanese</option>
+                    <option value="any">Any</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date Range</label>
+                <select id="setting-date-range">
+                    <option value="24h">Last 24 hours</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="14d">Last 14 days</option>
+                    <option value="30d">Last 30 days</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Max Stories to Research (Total)</label>
+                <input type="number" id="setting-max-stories" value="15" min="5" max="50">
+                <div class="hint">Total stories the researcher will gather from all sources combined.</div>
+            </div>
+            <div class="form-group">
+                <label>Max Tweet Proposals (Final Output)</label>
+                <input type="number" id="setting-max-proposals" value="10" min="1" max="50">
+                <div class="hint">Number of tweets the copywriter will generate from the research briefing. The verifier will check these proposals.</div>
+            </div>
+            <div class="form-group">
+                <label>Story Quotas per Source</label>
+                <div class="hint">How many stories to gather from each source. Set to 0 to disable a source without unchecking it. Total quota is the sum of all enabled sources.</div>
+                <div id="source-quotas-container" style="margin-top: 10px;"></div>
+                <div id="quota-total" style="margin-top: 8px; color: var(--accent-green); font-weight: 600;">Total: 0 stories</div>
+            </div>
+            <div class="form-group">
+                <label>Reddit Subreddits (comma-separated)</label>
+                <input type="text" id="setting-reddit-subs" placeholder="LocalLLaMA, LocalLLM, opensourceAI, MachineLearning">
+                <div class="hint">These subreddits are fetched via RSS for the pipeline. Add or remove as needed.</div>
+            </div>
+            <div class="form-group">
+                <label>Manual URL Check</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="setting-manual-url-check">
+                <label for="setting-manual-url-check">Enable manual URL analysis</label>
+            </div>
+            <div class="form-group" id="manual-url-group" style="display:none;">
+                <label>Paste URLs (one per line)</label>
+                <textarea id="setting-manual-urls" placeholder="https://arxiv.org/abs/...
+https://github.com/.../blob/main/...
+https://example.com/blog/..."></textarea>
+                <div class="hint">The pipeline will fetch and analyze these URLs as additional research sources. One URL per line.</div>
+            </div>
+        </div>
+
+        <!-- Copywriter Settings -->
+        <div class="settings-section" id="section-copywriter">
+            <h2>✍️ Copywriter Instructions</h2>
+            <div class="form-group">
+                <label>Instructions</label>
+                <textarea id="setting-copywriter-instructions" placeholder="Write concise, engaging tweets about local AI, LLMs, and AI agents. Focus on practical insights, tutorials, and news."></textarea>
+                <div class="hint">These instructions are used by the AI copywriter. Customize them for your preferred style.</div>
+            </div>
+            <div class="form-group">
+                <label>Tone/Style</label>
+                <select id="setting-tone">
+                    <option value="technical">Technical</option>
+                    <option value="casual">Casual</option>
+                    <option value="punchy">Punchy</option>
+                    <option value="thread">Thread-style</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Maximum Hashtags per Tweet</label>
+                <input type="number" id="setting-max-hashtags" value="3" min="0" max="10">
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="setting-include-why">
+                <label for="setting-include-why">Include "Why it works" in export</label>
+            </div>
+            <div class="form-group">
+                <label>Character Limit</label>
+                <input type="number" id="setting-max-chars" value="280" min="50" max="500">
+            </div>
+        </div>
+
+        <!-- Export Settings -->
+        <div class="settings-section" id="section-export">
+            <h2>📤 Export Settings</h2>
+            <div class="form-group">
+                <label>Default Export Format</label>
+                <select id="setting-default-format">
+                    <option value="raw">Raw (plain text)</option>
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                    <option value="pipeline">Pipeline Format</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Filename Pattern</label>
+                <input type="text" id="setting-filename" value="tweets-{date}" placeholder="tweets-{date}">
+                <div class="hint">Use {date} for the current date. Example: tweets-2024-01-01.csv</div>
+            </div>
+            <div class="form-group">
+                <label>CSV Fields (comma-separated)</label>
+                <input type="text" id="setting-csv-fields" value="id,label,text,hashtags,status,schedule_time,source,date" placeholder="id,label,text,hashtags,status,schedule_time,source,date">
+            </div>
+        </div>
+
+        <!-- Pipeline Settings -->
+        <div class="settings-section" id="section-pipeline">
+            <h2>⚙️ Pipeline Settings</h2>
+            <div class="form-group">
+                <label>Cron Schedule</label>
+                <input type="text" id="setting-cron" value="0 5 * * *" placeholder="0 5 * * *">
+                <div class="hint">Cron expression (e.g., 0 5 * * * for 5am daily)</div>
+            </div>
+            <div class="form-group">
+                <label>Max Tweets per Research Cycle</label>
+                <input type="number" id="setting-max-tweets-cycle" value="20" min="1" max="100">
+            </div>
+            <div class="form-group">
+                <label>Deduplication Threshold</label>
+                <input type="number" id="setting-dedup-threshold" value="0.8" min="0" max="1" step="0.01">
+                <div class="hint">Similarity threshold (0-1). Tweets above this similarity will be flagged.</div>
+            </div>
+            <div class="form-group">
+                <label>Source Priority (comma-separated, highest first)</label>
+                <input type="text" id="setting-source-priority" value="twitter,arxiv,github_trending,reddit,huggingface,youtube,tech_blogs" placeholder="twitter,arxiv,github_trending">
+            </div>
+            <div class="form-group">
+                <label>Language Filter</label>
+                <select id="setting-pipeline-language">
+                    <option value="en">English</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ja">Japanese</option>
+                    <option value="any">Any</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Save/Reset Buttons -->
+        <div style="margin-top: 30px;">
+            <button class="btn-save" onclick="saveSettings()">💾 SAVE SETTINGS</button>
+            <button class="btn-danger" onclick="resetSettings()">🔄 RESET TO DEFAULTS</button>
+        </div>
+    </div>
+
+    <div class="toast" id="settings-toast">Settings saved!</div>
+
+    <script>
+        // Settings navigation
+        document.querySelectorAll('.settings-nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+                btn.classList.add('active');
+                const sectionId = 'section-' + btn.dataset.section;
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+        // Toggle manual URL textarea visibility
+        const manualUrlCheck = document.getElementById('setting-manual-url-check');
+        const manualUrlGroup = document.getElementById('manual-url-group');
+        if (manualUrlCheck && manualUrlGroup) {
+            manualUrlCheck.addEventListener('change', () => {
+                manualUrlGroup.style.display = manualUrlCheck.checked ? 'block' : 'none';
+            });
+        }
+
+        // Toggle source quotas when source checkboxes change
+        document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const sourceKey = cb.id.replace('source-', '');
+                const quotaInputs = document.querySelectorAll('.quota-input');
+                quotaInputs.forEach(input => {
+                    if (input.dataset.source === sourceKey) {
+                        input.disabled = !cb.checked;
+                        input.style.opacity = cb.checked ? '1' : '0.5';
+                        const disabledSpan = input.nextElementSibling;
+                        if (disabledSpan && disabledSpan.classList.contains('quota-disabled')) {
+                            disabledSpan.style.display = cb.checked ? 'none' : 'inline';
+                        }
+                    }
+                });
+                updateQuotaTotal();
+            });
+        });
+
+        // Update total quota display
+        function updateQuotaTotal() {
+            const inputs = document.querySelectorAll('.quota-input:not([disabled])');
+            let total = 0;
+            inputs.forEach(input => {
+                total += parseInt(input.value) || 0;
+            });
+            const totalEl = document.getElementById('quota-total');
+            totalEl.textContent = `Total: ${total} stories`;
+            totalEl.style.color = total === 0 ? 'var(--text-dim)' : 'var(--accent-green)';
+        }
+        // Add event listeners to quota inputs
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('quota-input')) {
+                updateQuotaTotal();
+            }
+        });
+
+        // LOGIN
+        let isLoggedIn = false;
+        async function checkLogin() {
+            // Always verify with the server — localStorage is not trustable
+            try {
+                const r = await fetch('/api/status');
+                const data = await r.json();
+                if (data.authenticated) {
+                    isLoggedIn = true;
+                    localStorage.setItem('reviewer_auth', 'true');
+                } else {
+                    throw new Error('Not authenticated');
+                }
+            } catch (e) {
+                isLoggedIn = false;
+                localStorage.removeItem('reviewer_auth');
+            }
+            if (!isLoggedIn) {
+                document.getElementById('login-overlay').classList.add('active');
+                document.getElementById('login-password').focus();
+                document.body.style.overflow = 'hidden';
+            } else {
+                loadSettings();
+            }
+        }
+
+        function attemptLogin() {
+            const password = document.getElementById('login-password').value;
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'authenticated') {
+                    localStorage.setItem('reviewer_auth', 'true');
+                    isLoggedIn = true;
+                    document.getElementById('login-overlay').classList.remove('active');
+                    document.body.style.overflow = '';
+                    loadSettings();
+                } else {
+                    document.getElementById('login-error').style.display = 'block';
+                }
+            })
+            .catch(() => {
+                document.getElementById('login-error').style.display = 'block';
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.getElementById('login-overlay').classList.contains('active')) {
+                attemptLogin();
+            }
+        });
+
+        // Initialize — DOM is already parsed since script is at bottom of body
+        checkLogin();
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings', {
+                    credentials: 'include'
+                });
+                if (!response.ok) {
+                    console.error('Failed to load settings:', response.status, response.statusText);
+                    return;
+                }
+                const settings = await response.json();
+
+                // App settings
+                document.getElementById('setting-theme').value = settings.app?.theme || 'dark';
+                document.getElementById('setting-password').value = '';
+                document.getElementById('setting-remember-login').checked = settings.app?.remember_login ?? true;
+                document.getElementById('setting-auto-refresh').value = settings.app?.auto_refresh_interval ?? 5;
+                document.getElementById('setting-max-tweets').value = settings.app?.max_tweets_per_page ?? 50;
+                document.getElementById('setting-date-format').value = settings.app?.date_format ?? 'YYYY-MM-DD';
+
+                // Research settings
+                const sources = settings.research?.sources || {};
+                document.getElementById('source-twitter').checked = sources.twitter ?? true;
+                document.getElementById('source-arxiv').checked = sources.arxiv ?? false;
+                document.getElementById('source-github_trending').checked = sources.github_trending ?? false;
+                document.getElementById('source-reddit').checked = sources.reddit ?? false;
+                document.getElementById('source-huggingface').checked = sources.huggingface ?? false;
+                document.getElementById('source-youtube').checked = sources.youtube ?? false;
+                document.getElementById('source-tech_blogs').checked = sources.tech_blogs ?? false;
+                document.getElementById('setting-keywords').value = (settings.research?.keywords || []).join(', ');
+                document.getElementById('setting-language').value = settings.research?.language || 'en';
+                document.getElementById('setting-date-range').value = settings.research?.date_range || '24h';
+                document.getElementById('setting-reddit-subs').value = (settings.research?.reddit_subreddits || ['LocalLLaMA', 'LocalLLM', 'opensourceAI', 'MachineLearning']).join(', ');
+                document.getElementById('setting-max-stories').value = settings.research?.max_stories ?? 15;
+                document.getElementById('setting-manual-url-check').checked = settings.research?.manual_url_check ?? false;
+                document.getElementById('setting-manual-urls').value = (settings.research?.manual_urls || []).join('\\n');
+                if (settings.research?.manual_url_check) {
+                    manualUrlGroup.style.display = 'block';
+                }
+
+                // Source quotas
+                const quotas = settings.research?.source_quotas || {};
+                const quotaContainer = document.getElementById('source-quotas-container');
+                const sourceLabels = {
+                    'twitter': 'Twitter/X',
+                    'arxiv': 'arXiv Papers',
+                    'github_trending': 'GitHub Trending',
+                    'reddit': 'Reddit',
+                    'huggingface': 'Hugging Face',
+                    'youtube': 'YouTube Transcripts',
+                    'tech_blogs': 'Tech Blogs'
+                };
+                const sourcesList = settings.research?.sources || {};
+                quotaContainer.innerHTML = '';
+                for (const [sourceKey, label] of Object.entries(sourceLabels)) {
+                    const isChecked = sourcesList[sourceKey] ?? false;
+                    const quota = quotas[sourceKey] ?? 0;
+                    const row = document.createElement('div');
+                    row.className = 'quota-row';
+                    row.innerHTML = `
+                        <label>${label}</label>
+                        <input type="number" min="0" max="50" value="${quota}" ${!isChecked ? 'disabled style="opacity:0.5"' : ''} data-source="${sourceKey}" class="quota-input">
+                        <span class="quota-disabled" ${isChecked ? 'style="display:none"' : ''}>Disabled</span>
+                    `;
+                    quotaContainer.appendChild(row);
+                }
+                updateQuotaTotal();
+
+                // Copywriter settings
+                document.getElementById('setting-copywriter-instructions').value = settings.copywriter?.instructions || '';
+                document.getElementById('setting-tone').value = settings.copywriter?.tone || 'technical';
+                document.getElementById('setting-max-hashtags').value = settings.copywriter?.max_hashtags ?? 3;
+                document.getElementById('setting-include-why').checked = settings.copywriter?.include_why_it_works ?? true;
+                document.getElementById('setting-max-chars').value = settings.copywriter?.max_characters ?? 280;
+
+                // Export settings
+                document.getElementById('setting-default-format').value = settings.export?.default_format || 'pipeline';
+                document.getElementById('setting-filename').value = settings.export?.filename_pattern || 'tweets-{date}';
+                document.getElementById('setting-csv-fields').value = (settings.export?.csv_fields || []).join(',');
+
+                // Pipeline settings
+                document.getElementById('setting-cron').value = settings.pipeline?.cron_schedule || '0 5 * * *';
+                document.getElementById('setting-max-tweets-cycle').value = settings.pipeline?.max_tweets_per_cycle ?? 20;
+                document.getElementById('setting-max-proposals').value = settings.research?.max_proposals ?? 10;
+                document.getElementById('setting-dedup-threshold').value = settings.pipeline?.deduplication_threshold ?? 0.8;
+                document.getElementById('setting-source-priority').value = (settings.pipeline?.source_priority || []).join(',');
+                document.getElementById('setting-pipeline-language').value = settings.pipeline?.language_filter || 'en';
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            }
+        }
+
+        async function saveSettings() {
+            const settings = {
+                app: {
+                    theme: document.getElementById('setting-theme').value,
+                    password: document.getElementById('setting-password').value,
+                    remember_login: document.getElementById('setting-remember-login').checked,
+                    auto_refresh_interval: parseInt(document.getElementById('setting-auto-refresh').value),
+                    max_tweets_per_page: parseInt(document.getElementById('setting-max-tweets').value),
+                    date_format: document.getElementById('setting-date-format').value
+                },
+                research: {
+                    sources: {
+                        twitter: document.getElementById('source-twitter').checked,
+                        arxiv: document.getElementById('source-arxiv').checked,
+                        github_trending: document.getElementById('source-github_trending').checked,
+                        reddit: document.getElementById('source-reddit').checked,
+                        huggingface: document.getElementById('source-huggingface').checked,
+                        youtube: document.getElementById('source-youtube').checked,
+                        tech_blogs: document.getElementById('source-tech_blogs').checked
+                    },
+                    keywords: document.getElementById('setting-keywords').value.split(',').map(k => k.trim()).filter(k => k),
+                    language: document.getElementById('setting-language').value,
+                    date_range: document.getElementById('setting-date-range').value,
+                    max_stories: parseInt(document.getElementById('setting-max-stories').value) || 15,
+                    manual_url_check: document.getElementById('setting-manual-url-check').checked,
+                    manual_urls: document.getElementById('setting-manual-urls').value.split('\n').map(u => u.trim()).filter(u => u && u.startsWith('http')),
+                    reddit_subreddits: document.getElementById('setting-reddit-subs').value.split(',').map(s => s.trim()).filter(s => s),
+                    max_proposals: parseInt(document.getElementById('setting-max-proposals').value) || 10,
+                    source_quotas: Object.fromEntries(
+                        Array.from(document.querySelectorAll('.quota-input')).map(input => [
+                            input.dataset.source,
+                            parseInt(input.value) || 0
+                        ])
+                    )
+                },
+                copywriter: {
+                    instructions: document.getElementById('setting-copywriter-instructions').value,
+                    tone: document.getElementById('setting-tone').value,
+                    max_hashtags: parseInt(document.getElementById('setting-max-hashtags').value),
+                    include_why_it_works: document.getElementById('setting-include-why').checked,
+                    max_characters: parseInt(document.getElementById('setting-max-chars').value)
+                },
+                export: {
+                    default_format: document.getElementById('setting-default-format').value,
+                    filename_pattern: document.getElementById('setting-filename').value,
+                    csv_fields: document.getElementById('setting-csv-fields').value.split(',').map(f => f.trim()).filter(f => f)
+                },
+                pipeline: {
+                    cron_schedule: document.getElementById('setting-cron').value,
+                    max_tweets_per_cycle: parseInt(document.getElementById('setting-max-tweets-cycle').value),
+                    deduplication_threshold: parseFloat(document.getElementById('setting-dedup-threshold').value),
+                    source_priority: document.getElementById('setting-source-priority').value.split(',').map(s => s.trim()).filter(s => s),
+                    language_filter: document.getElementById('setting-pipeline-language').value
+                }
+            };
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                if (response.ok) {
+                    showToast('Settings saved!');
+                } else if (response.status === 401) {
+                    showToast('Session expired. Please log in again.', true);
+                } else {
+                    showToast('Failed to save settings: ' + response.status, true);
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, true);
+            }
+        }
+
+        async function resetSettings() {
+            if (confirm('Reset all settings to defaults? This cannot be undone.')) {
+                try {
+                    const response = await fetch('/api/settings/reset', {
+                        method: 'POST'
+                    });
+                    if (response.ok) {
+                        showToast('Settings reset to defaults!');
+                        loadSettings();
+                    } else {
+                        showToast('Failed to reset settings', true);
+                    }
+                } catch (error) {
+                    showToast('Error: ' + error.message, true);
+                }
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('settings-toast');
+            toast.textContent = message;
+            toast.style.background = isError ? '#e53e3e' : 'var(--accent-green)';
+            toast.style.color = isError ? '#fff' : '#000';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,17 +1,17 @@
-# Twitter Reviewer Skill
+# TweetLoop Skill
 
-This skill integrates your AI pipeline with the Twitter Reviewer dashboard.
+This skill integrates your AI pipeline with the TweetLoop dashboard.
 
 ## Setup
 
-1. Clone or copy the `twitter-reviewer` app to your workspace
+1. Clone or copy the `tweetloop` app to your workspace
 2. Install dependencies: `pip install flask`
 3. Start the app: `python3 app.py`
 
 ## Integration Steps
 
 1. When your pipeline finishes verification, save the tweets to:
-   `/path/to/twitter-reviewer/data/tweets.json`
+   `/path/to/tweetloop/data/tweets.json`
 
 2. Format each tweet as:
 ```json

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tweet Reviewer</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -24,7 +27,7 @@
     <div class="header">
         <div class="header-terminal-bar">
             <span class="prompt">SYS://</span>
-            <span>TWEET_REVIEWER</span>
+            <span>TWEETLOOP</span>
             <span>|</span>
             <span>UPLINK:</span>
             <span id="uplink-status" class="status-ok">OK</span>
@@ -38,6 +41,7 @@
                 <span class="prefix">&gt;</span> <span class="accent">TWEET</span>_REVIEWER
             </div>
             <div class="header-actions">
+                <a href="/settings" class="btn" style="text-decoration: none; color: inherit;">⚙ SETTINGS</a>
                 <button class="btn" onclick="fetchTweets()">REFRESH</button>
                 <button class="btn btn-primary" onclick="showModal('add-modal')">+ NEW</button>
                 <div class="export-dropdown">
@@ -45,6 +49,7 @@
                     <div class="export-menu" id="export-menu">
                         <button onclick="exportApproved('raw')">→ APPROVED (RAW)</button>
                         <button onclick="exportApproved('csv')">→ APPROVED (CSV)</button>
+                        <button onclick="exportPipeline()">→ APPROVED (PIPELINE)</button>
                         <button onclick="exportAll('json')">→ ALL (JSON)</button>
                         <button onclick="exportAll('csv')">→ ALL (CSV)</button>
                     </div>
@@ -101,7 +106,14 @@
                 </div>
                 <div class="form-group">
                     <label>Tweet Text</label>
-                    <textarea id="new-tweet-text" placeholder="Enter your tweet..." oninput="updateNewCharCount()"></textarea>
+                    <div class="emoji-input-wrapper">
+                        <textarea id="new-tweet-text" placeholder="Enter your tweet..." oninput="updateNewCharCount()" onpaste="handleImagePaste(event)"></textarea>
+                        <button class="btn btn-sm btn-emoji-trigger" onclick="openEmojiPicker('new-tweet-text')" title="Insert emoji">😀</button>
+                        <div class="emoji-picker" id="new-emoji-picker">
+                            <input type="text" class="emoji-search" placeholder="Search emoji..." oninput="filterEmojiPicker('new')" aria-label="Search emoji">
+                            <div class="emoji-grid" id="new-emoji-grid"></div>
+                        </div>
+                    </div>
                     <div class="char-counter" id="new-char-counter">
                         <span class="count" id="new-char-count">0</span>
                         <span>/ 280</span>
@@ -121,6 +133,51 @@
                     <input type="text" id="new-tweet-hashtags" placeholder="#LocalAI #LLM">
                 </div>
                 <button class="btn btn-primary" onclick="addTweet()">ADD_TWEET</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Tweet Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>> EDIT_TWEET</span>
+                <button class="btn btn-sm" onclick="hideModal('edit-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Label</label>
+                    <input type="text" id="edit-tweet-label" placeholder="Local LLM">
+                </div>
+                <div class="form-group">
+                    <label>Tweet Text</label>
+                    <div class="emoji-input-wrapper">
+                        <textarea id="edit-tweet-text" placeholder="Enter your tweet..." oninput="updateEditCharCount()" onpaste="handleImagePaste(event)"></textarea>
+                        <button class="btn btn-sm btn-emoji-trigger" onclick="openEmojiPicker('edit-tweet-text')" title="Insert emoji">😀</button>
+                        <div class="emoji-picker" id="edit-emoji-picker">
+                            <input type="text" class="emoji-search" placeholder="Search emoji..." oninput="filterEmojiPicker('edit')" aria-label="Search emoji">
+                            <div class="emoji-grid" id="edit-emoji-grid"></div>
+                        </div>
+                    </div>
+                    <div class="char-counter" id="edit-char-counter">
+                        <span class="count" id="edit-char-count">0</span>
+                        <span>/ 280</span>
+                        <div class="progress-bar"><div class="fill" id="edit-char-bar"></div></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Why it works</label>
+                    <textarea id="edit-tweet-why" placeholder="Why this will resonate..." style="min-height: 60px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Schedule Time</label>
+                    <input type="datetime-local" id="edit-tweet-time">
+                </div>
+                <div class="form-group">
+                    <label>Hashtags</label>
+                    <input type="text" id="edit-tweet-hashtags" placeholder="#LocalAI #LLM">
+                </div>
+                <button class="btn btn-primary" onclick="saveEdit()">SAVE_CHANGES</button>
             </div>
         </div>
     </div>
@@ -158,7 +215,36 @@
     <!-- Copied Toast -->
     <div class="copied-toast" id="copied-toast">> COPIED_TO_CLIPBOARD</div>
 
+    <!-- Action Toast -->
+    <div class="action-toast" id="action-toast"></div>
+
     <script>
+        // ── Dynamic emoji picker creation: build them in JS so cached HTML doesn't matter ──
+        (function createEmojiPickers() {
+            const containers = [
+                { id: 'new-emoji-picker', textareaId: 'new-tweet-text' },
+                { id: 'edit-emoji-picker', textareaId: 'edit-tweet-text' }
+            ];
+            containers.forEach(function(c) {
+                if (!document.getElementById(c.id)) {
+                    var div = document.createElement('div');
+                    div.className = 'emoji-picker';
+                    div.id = c.id;
+                    var textarea = document.getElementById(c.textareaId);
+                    if (textarea) textarea.parentNode.insertBefore(div, textarea.nextSibling);
+                }
+            });
+        })();
+
+        // ── Global fetch wrapper: auto-add credentials for /api/* ──
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                options.credentials = options.credentials || 'include';
+            }
+            return originalFetch.call(this, url, options);
+        };
+
         let allTweets = {};
         let bulkMode = false;
 
@@ -181,7 +267,8 @@
             fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
+                body: JSON.stringify({ password }),
+                credentials: 'include'
             })
             .then(r => r.json())
             .then(data => {
@@ -213,7 +300,7 @@
 
         async function fetchTweets() {
             try {
-                const response = await fetch('/api/tweets');
+                const response = await fetch('/api/tweets', { credentials: 'include' });
                 if (response.status === 401) {
                     localStorage.removeItem('reviewer_auth');
                     isLoggedIn = false;
@@ -307,19 +394,22 @@
                 container.innerHTML = '<div class="empty-state"><span class="prompt">&gt;</span> NO_MATCHING_TWEETS_FOUND<span class="cursor-blink"></span></div>';
                 return;
             }
+            const today = new Date().toISOString().slice(0, 10);
             container.innerHTML = dates.map(date => {
                 const tweets = filtered[date];
                 const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
                     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 });
+                const isToday = date === today;
+                const collapsedClass = isToday ? '' : 'collapsed';
                 return `
                     <div class="date-group">
-                        <div class="date-header" onclick="toggleDate('${date}')">
+                        <div class="date-header ${collapsedClass}" onclick="toggleDate('${date}')">
                             <span class="toggle-icon">▼</span>
                             <span class="date-text">${displayDate}</span>
                             <span class="count-badge">${tweets.length} TWEETS</span>
                         </div>
-                        <div class="date-tweets" id="tweets-${date}">
+                        <div class="date-tweets ${collapsedClass}" id="tweets-${date}">
                             ${tweets.map(tweet => renderTweet(tweet)).join('')}
                         </div>
                     </div>
@@ -350,8 +440,8 @@
 
             const bulkCheck = bulkMode ? `<input type="checkbox" class="tweet-checkbox" data-id="${tweet.id}" onchange="updateBulkCount()">` : '';
 
-            const manualToggle = (tweet.status === 'manual') ?
-                `<span style="color: var(--accent-white); margin-right: 8px;">MANUAL_POSTED</span>` : '';
+            // Clean the tweet text — strip ">" blockquote markers
+            const cleanText = (tweet.text || '').replace(/\n>\n/g, '\n').replace(/>/g, '').trim();
 
             return `
                 <div class="tweet-card ${tweet.status}">
@@ -363,15 +453,15 @@
                             ${tweet.section_number ? `<span style="color: var(--text-dim);">#${tweet.section_number}</span>` : ''}
                         </div>
                         <div class="right">
-                            ${manualToggle}
+                            <button class="btn btn-sm btn-copy-inline" onclick="copyTweetText('${tweet.id}', this)">COPY</button>
                             <button class="btn btn-sm" onclick="previewTweet('${tweet.id}')" style="border-color: var(--text-muted); color: var(--text-muted);">PREVIEW</button>
-                            <button class="btn btn-sm" onclick="deleteTweet('${tweet.id}')" style="border-color: var(--accent-red); color: var(--accent-red);">DEL</button>
+                            <button class="btn btn-sm" onclick="editTweet('${tweet.id}')" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">EDIT</button>
+                            <button class="btn btn-sm" onclick="confirmDeleteTweet('${tweet.id}')" style="border-color: var(--accent-red); color: var(--accent-red);">DELETE</button>
                         </div>
                     </div>
 
                     <div class="tweet-code-block">
-                        <button class="btn-copy-block" onclick="copyTweetText('${tweet.id}', this)">COPY</button>
-                        <div class="tweet-code-text" id="text-${tweet.id}">${escapeHtml(tweet.text)}</div>
+                        <div class="tweet-code-text" id="text-${tweet.id}">${escapeHtml(cleanText)}</div>
                     </div>
 
                     ${charLen > 0 ? `
@@ -384,26 +474,33 @@
                     ${whyHtml}
 
                     <div class="tweet-meta">
-                        <span>${hashtagsHtml} ${tweet.schedule_time ? 'SCHEDULE: ' + formatDate(tweet.schedule_time) : ''} | ${tweet.source || 'manual'}</span>
+                        <span>${hashtagsHtml} ${tweet.schedule_time ? 'SCHEDULE: ' + formatDate(tweet.schedule_time) : ''} | ${tweet.source || 'manual'}${tweet.source_url ? ' <a href="' + escapeHtml(tweet.source_url) + '" target="_blank" rel="noopener" class="tweet-source-link">[SOURCE]</a>' : ''}</span>
                     </div>
 
-                    <div class="tweet-actions">
+                    <div class="tweet-actions-right">
                         <button class="btn btn-sm" onclick="approveTweet('${tweet.id}')">APPROVE</button>
                         <button class="btn btn-sm" onclick="postTweet('${tweet.id}')">POST</button>
-                        <button class="btn btn-sm" onclick="toggleManualPost('${tweet.id}', this)">MANUAL_POST</button>
-                        <button class="btn btn-sm" onclick="editSchedule('${tweet.id}')">EDIT_SCHEDULE</button>
+                        <button class="btn btn-sm" onclick="toggleManualPost('${tweet.id}', this)">MANUAL</button>
+                        <button class="btn btn-sm" onclick="editSchedule('${tweet.id}')">SCHEDULE</button>
                     </div>
                 </div>
             `;
         }
 
-        // Direct copy — no modal, just toast
+        // Direct copy — no modal, just toast. Works on HTTP and HTTPS.
         function copyTweetText(id, btn) {
             const el = document.getElementById(`text-${id}`);
             if (!el) return;
             const text = el.textContent;
 
-            navigator.clipboard.writeText(text).then(() => {
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(showCopied).catch(fallbackCopy);
+            } else {
+                fallbackCopy();
+            }
+
+            function showCopied() {
                 const toast = document.getElementById('copied-toast');
                 toast.classList.add('show');
                 btn.textContent = '✓ COPIED';
@@ -413,10 +510,24 @@
                     btn.textContent = 'COPY';
                     btn.classList.remove('copied');
                 }, 2000);
-            }).catch(() => {
-                // Fallback: open modal if clipboard API fails
-                showCopyModal(text);
-            });
+            }
+
+            function fallbackCopy() {
+                // For HTTP / non-secure contexts where clipboard API is blocked
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy');
+                    showCopied();
+                } catch (e) {
+                    alert('Copy failed — select the text and press Ctrl+C');
+                }
+                document.body.removeChild(ta);
+            }
         }
 
         function showCopyModal(text) {
@@ -467,7 +578,9 @@
             }
             if (!tweet) return;
 
-            const text = (tweet.text || '').substring(0, 280);
+            // Clean text for preview
+            const previewText = (tweet.text || '').replace(/\n>\n/g, '\n').replace(/>/g, '').trim();
+            const text = previewText.substring(0, 280);
             const hashtags = tweet.hashtags || '';
 
             document.getElementById('preview-content').innerHTML = `
@@ -482,6 +595,82 @@
                 <div class="preview-meta">${new Date().toLocaleString()} · Web</div>
             `;
             showModal('preview-modal');
+        }
+
+        // Inline edit tweet
+        let editingTweetId = null;
+
+        function editTweet(id) {
+            editingTweetId = id;
+            let tweet = null;
+            for (const date in allTweets) {
+                const found = allTweets[date].find(t => t.id === id);
+                if (found) { tweet = found; break; }
+            }
+            if (!tweet) return;
+
+            // Clean the text — strip ">" blockquote markers before putting in the editor
+            const cleanText = (tweet.text || '').replace(/\n>\n/g, '\n').replace(/>/g, '').trim();
+
+            document.getElementById('edit-tweet-label').value = tweet.label || '';
+            document.getElementById('edit-tweet-text').value = cleanText;
+            document.getElementById('edit-tweet-why').value = tweet.why_it_works || '';
+            document.getElementById('edit-tweet-time').value = tweet.schedule_time || '';
+            document.getElementById('edit-tweet-hashtags').value = tweet.hashtags || '';
+            updateEditCharCount();
+            showModal('edit-modal');
+        }
+
+        async function saveEdit() {
+            if (!editingTweetId) return;
+            const label = document.getElementById('edit-tweet-label').value;
+            const text = document.getElementById('edit-tweet-text').value;
+            const why = document.getElementById('edit-tweet-why').value;
+            const time = document.getElementById('edit-tweet-time').value;
+            const hashtags = document.getElementById('edit-tweet-hashtags').value;
+
+            if (!text) {
+                customAlert('Enter tweet text');
+                return;
+            }
+
+            await fetch(`/api/tweets/${editingTweetId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text,
+                    label: label || null,
+                    why_it_works: why || null,
+                    schedule_time: time || null,
+                    hashtags
+                })
+            });
+
+            editingTweetId = null;
+            hideModal('edit-modal');
+            fetchTweets();
+        }
+
+        function updateEditCharCount() {
+            const text = document.getElementById('edit-tweet-text').value;
+            const len = text.length;
+            const countEl = document.getElementById('edit-char-count');
+            const barEl = document.getElementById('edit-char-bar');
+            const percent = Math.min((len / 280) * 100, 100);
+
+            countEl.textContent = len;
+            barEl.style.width = percent + '%';
+
+            if (len <= 260) {
+                countEl.className = 'count safe';
+                barEl.className = 'fill safe';
+            } else if (len <= 280) {
+                countEl.className = 'count warn';
+                barEl.className = 'fill warn';
+            } else {
+                countEl.className = 'count over';
+                barEl.className = 'fill over';
+            }
         }
 
         // Char counter for new tweet
@@ -542,12 +731,17 @@
         }
 
         async function postTweet(id) {
-            await fetch(`/api/tweets/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'posted' })
+            const response = await fetch(`/api/tweets/${id}/post`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             });
-            fetchTweets();
+            const data = await response.json();
+            if (response.ok) {
+                showToast('POSTED: ' + (data.message || 'Success'));
+                fetchTweets();
+            } else {
+                showToast('POST FAILED: ' + (data.message || 'Unknown error'));
+            }
         }
 
         async function toggleManualPost(id, btn) {
@@ -591,8 +785,50 @@
             fetchTweets();
         }
 
-        async function deleteTweet(id) {
-            if (confirm('DELETE this tweet?')) {
+        // Custom alert and confirm dialogs
+        function customAlert(message) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.innerHTML = `
+                <div class="modal" style="max-width: 400px;">
+                    <div class="modal-body" style="padding: 24px;">
+                        <p style="text-align: center; color: var(--text-primary); font-size: 14px;">${message}</p>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="this.closest('.modal-overlay').remove()">OK</button>
+                    </div>
+                </div>
+            `;
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+            document.body.appendChild(modal);
+        }
+
+        function customConfirm(message) {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay active';
+                modal.innerHTML = `
+                    <div class="modal" style="max-width: 400px;">
+                        <div class="modal-body" style="padding: 24px;">
+                            <p style="text-align: center; color: var(--text-primary); font-size: 14px;">${message}</p>
+                            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                                <button class="btn btn-primary" style="flex: 1;" id="confirm-yes">YES</button>
+                                <button class="btn" style="flex: 1;" id="confirm-no">NO</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) { modal.remove(); resolve(false); }
+                });
+                document.getElementById('confirm-yes').addEventListener('click', () => { modal.remove(); resolve(true); });
+                document.getElementById('confirm-no').addEventListener('click', () => { modal.remove(); resolve(false); });
+                document.body.appendChild(modal);
+            });
+        }
+
+        async function confirmDeleteTweet(id) {
+            if (await customConfirm('Delete this tweet?')) {
                 await fetch(`/api/tweets/${id}`, { method: 'DELETE' });
                 fetchTweets();
                 populateLabels();
@@ -625,10 +861,10 @@
         async function bulkDelete() {
             const checked = document.querySelectorAll('.tweet-checkbox:checked');
             if (checked.length === 0) return;
-            if (!confirm(`Delete ${checked.length} tweets?`)) return;
+            if (!await customConfirm(`Delete ${checked.length} tweets?`)) return;
 
             for (const cb of checked) {
-                await fetch(`/api/tweets/${cb.dataset.id}`, { method: 'DELETE' });
+                await fetch(`/api/tweets/${id}`, { method: 'DELETE' });
             }
             toggleBulkMode();
             fetchTweets();
@@ -716,6 +952,57 @@
             }).join('\n\n---\n\n');
         }
 
+        function exportPipeline() {
+            const pipelineTweets = [];
+            for (const date in allTweets) {
+                allTweets[date].forEach(t => {
+                    if (t.status === 'approved') {
+                        pipelineTweets.push(t);
+                    }
+                });
+            }
+            if (pipelineTweets.length === 0) {
+                customAlert('No approved tweets to export in pipeline format');
+                toggleExportMenu();
+                return;
+            }
+
+            // Sort by section_number then date
+            pipelineTweets.sort((a, b) => {
+                const numA = (a.section_number || 0);
+                const numB = (b.section_number || 0);
+                if (numA !== numB) return numA - numB;
+                return (a.date || '').localeCompare(b.date || '');
+            });
+
+            let content = '# X-proposed-tweets — Pipeline Export\n\n';
+            let lastSection = 0;
+
+            pipelineTweets.forEach((tweet, idx) => {
+                const sectionNum = tweet.section_number || (idx + 1);
+                if (sectionNum !== lastSection) {
+                    content += `## ${sectionNum}. [${tweet.label || 'Untitled'}]\n`;
+                    content += `| **Tweet:**\n`;
+                }
+
+                const cleanText = (tweet.text || '').replace(/\n>\n/g, '\n').replace(/>/g, '').trim();
+                if (cleanText) {
+                    content += `> ${cleanText}\n`;
+                } else {
+                    content += `> \n`;
+                }
+                content += `|\n`;
+
+                if (tweet.why_it_works) {
+                    content += `\n**Why it works:** ${tweet.why_it_works}\n\n`;
+                }
+                lastSection = sectionNum;
+            });
+
+            downloadFile(`pipeline-${new Date().toISOString().slice(0,10)}.md`, content);
+            toggleExportMenu();
+        }
+
         function downloadFile(filename, content) {
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -742,8 +1029,260 @@
         function hideModal(id) { document.getElementById(id).classList.remove('active'); }
         function formatDate(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString(); }
 
+        // ── Emoji Picker ─────────────────────────────────────────────
+        const EMOJI_DATA = {
+            '😀 Smileys': [
+                '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃',
+                '😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙',
+                '😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔',
+                '🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥',
+                '😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮',
+                '🥵','🥶','🥴','🥱','😤','😡','😠','🤬','😈','👿',
+                '💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'
+            ],
+            '👋 Gestures': [
+                '😀','😎','🤓','🧐','🥳','🥸','😺','😸','😹','😻',
+                '😼','😽','🙀','😿','😾','🙈','🙉','🙊','💋','💌',
+                '💘','💝','💖','💗','💓','💞','💕','💟','❣️','💔',
+                '❤️','🧡','💛','💚','💙','💜','🤎','🖤','🤍','💯',
+                '💢','💥','💫','💦','💨','🕳️','💣','💬','👋','🤚',
+                '🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘',
+                '🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊',
+                '👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️',
+                '💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃',
+                '🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄','👶',
+                '🧒','👦','👧','🧑','👱','👨','🧔','👩','🧓','👴',
+                '👵','🙍','🙎','🙅','🙆','💁','🙋','🧏','🙇','🤦',
+                '🤷','👮','🕵️','💂','🥷','👷','🤴','👸','👳','👲',
+                '🧕','🤵','👰','🤰','🤱','👼','🎅','🤶','🦸','🦹',
+                '🧙','🧚','🧛','🧜','🧝','🧞','🧟','💆','💇','🚶',
+                '🧍','🧎','🏃','💃','🕺','👯','🧖','🧗','🤸','⛹️',
+                '🏋️','🚴','🚵','🤼','🤽','🤾','🤺','⛷️','🏂','🏌️',
+                '🏇','🏆','🥇','🥈','🥉','🏅','🎖️','🏵️','🎗️','🎫',
+                '🎟️','🎪','🎭','🎨','🎬','🎤','🎧','🎼','🎹','🥁',
+                '🎷','🎺','🎸','🪕','🎻','🎲','♟️','🎯','🎳','🎮',
+                '🎰','🧩','🎭','🖼️','🎨','🧸','🪅','🪆','🪩','🪈'
+            ],
+            '🍔 Food': [
+                '🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐',
+                '🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑',
+                '🥦','🥬','🥒','🌶️','🫑','🌽','🥕','🧄','🧅','🥔',
+                '🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🧈',
+                '🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕',
+                '🫓','🥪','🥙','🧆','🌮','🌯','🫔','🥗','🥘','🫕',
+                '🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤',
+                '🍙','🍚','🍘','🍥','🥠','🥮','🍢','🍡','🍧','🍨',
+                '🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿',
+                '🍩','🍪','🌰','🥜','🍯','🥛','🍼','🫖','☕','🍵',
+                '🍶','🍾','🍷','🍸','🍹','🍺','🍻','🥂','🥃','🥤',
+                '🧋','🧃','🧉','🧊','🥢','🍽️','🍴','🥄','🔪','🏺'
+            ],
+            '🚀 Objects': [
+                '💻','🖥️','🖨️','⌨️','🖱️','🖲️','💽','💾','💿','📀',
+                '📱','📲','☎️','📞','📟','📠','📺','📻','🎙️','🎚️',
+                '🎛️','🧭','⏱️','⏰','📡','🔋','🔌','💡','🔦','🕯️',
+                '🧯','🗑️','🔒','🔓','🔏','🔐','🔑','🗝️','🔨','🪓',
+                '⛏️','⚒️','🛠️','🗡️','⚔️','🔫','🏹','🛡️','🔧','🔩',
+                '⚙️','🗜️','⚖️','🦯','🔗','⛓️','🧰','🧲','⚗️','🧪',
+                '🧫','🧬','🔬','🔭','📡','💉','🩸','💊','🩹','🩺',
+                '🚪','🛗','🪞','🪟','🛏️','🛋️','🪑','🚽','🪠','🚿',
+                '🛁','🪤','🪒','🧴','🧷','🧹','🧺','🧻','🪣','🧼',
+                '🫧','🪥','🧽','🧯','🛒','🚬','⚰️','🪦','⚱️','🗿',
+                '🪧','🪪','🏧','🚰','🚹','🚺','🚻','🚼','🚾','🚮',
+                '🎦','📶','📳','📴','♀️','♂️','⚕️','♾️','‼️','⁉️',
+                '❓','❔','❕','❗','〰️','💱','💲','⚡','⚧️','⚛️',
+                '🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️',
+                '✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲',
+                '🅰️','🅱️','🆎','🆑','🆒','🆓','ℹ️','🆔','Ⓜ️','🆕',
+                '🆖','🅾️','🆗','🅿️','🆘','🆙','🆚','🈁','🈂️','🛂',
+                '🛃','🛄','🛅','🚾','♿','🅿️','🛗','🈳','🈂️','🛂',
+                '🛃','🛄','🛅'
+            ],
+            '⚡ Symbols': [
+                '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔',
+                '❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️',
+                '✝️','☪️','🕉️','☸️','✡️','🔯','🕎','☯️','☦️','🛐',
+                '⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐',
+                '♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳',
+                '🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️',
+                '㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🆒',
+                '🆓','ℹ️','🆔','Ⓜ️','🆕','🆖','🅾️','🆗','🅿️','🆘',
+                '🆙','🆚','🈁','🈂️','🛂','🛃','🛄','🛅','🚾','♿',
+                '🅿️','🛗','🈳','🈂️','🛂','🛃','🛄','🛅','🚾','♿',
+                '🅿️','🛗','🈳','🈂️','🛂','🛃','🛄','🛅'
+            ]
+        };
+
+        let currentEmojiTarget = null;
+        let currentEmojiPicker = null;
+
+        function openEmojiPicker(textareaId) {
+            // Close any open picker first
+            closeEmojiPicker();
+
+            currentEmojiTarget = textareaId;
+            currentEmojiPicker = textareaId.replace('-text', '-emoji-picker');
+
+            // Defensive: if picker div is missing (cache issue), create it dynamically
+            let picker = document.getElementById(currentEmojiPicker);
+            if (!picker) {
+                picker = document.createElement('div');
+                picker.className = 'emoji-picker';
+                picker.id = currentEmojiPicker;
+                picker.innerHTML = '<input type="text" class="emoji-search" placeholder="Search emoji..." aria-label="Search emoji"><div class="emoji-grid" id="' + currentEmojiPicker.replace('emoji-picker', 'emoji-grid') + '"></div>';
+                document.body.appendChild(picker);
+            }
+
+            const grid = document.getElementById(textareaId.replace('-text', '-emoji-grid'));
+            const textarea = document.getElementById(textareaId);
+            const triggerBtn = textarea.parentElement.querySelector('.btn-emoji-trigger');
+            const search = picker.querySelector('.emoji-search');
+
+            // Clear search and grid
+            search.value = '';
+            grid.innerHTML = '';
+
+            // Populate grid with all emojis
+            for (const [category, emojis] of Object.entries(EMOJI_DATA)) {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'emoji-category';
+                catDiv.innerHTML = `<div class="emoji-category-label">${category}</div>`;
+
+                const emojiRow = document.createElement('div');
+                emojiRow.className = 'emoji-row';
+
+                emojis.forEach(emoji => {
+                    const btn = document.createElement('button');
+                    btn.className = 'emoji-btn';
+                    btn.textContent = emoji;
+                    btn.title = emoji;
+                    btn.onclick = () => insertEmoji(emoji);
+                    emojiRow.appendChild(btn);
+                });
+
+                catDiv.appendChild(emojiRow);
+                grid.appendChild(catDiv);
+            }
+
+            // Position the picker using fixed positioning relative to the trigger button
+            const triggerRect = triggerBtn.getBoundingClientRect();
+            picker.style.top = (triggerRect.bottom + window.scrollY + 4) + 'px';
+            picker.style.left = (triggerRect.left + window.scrollX) + 'px';
+
+            // Show picker
+            picker.classList.add('active');
+            search.focus();
+        }
+
+        function closeEmojiPicker() {
+            // Close all pickers
+            document.querySelectorAll('.emoji-picker').forEach(p => p.classList.remove('active'));
+            currentEmojiTarget = null;
+            currentEmojiPicker = null;
+        }
+
+        function filterEmojiPicker(prefix) {
+            const picker = document.getElementById(`${prefix}-emoji-picker`);
+            const search = picker.querySelector('.emoji-search');
+            const grid = document.getElementById(`${prefix}-emoji-grid`);
+            const query = search.value.toLowerCase().trim();
+
+            // This is a simple filter - hide emojis that don't match
+            // For a more sophisticated approach, we'd need emoji names/aliases
+            // For now, we just show all emojis when no search term
+            if (!query) {
+                // Show all
+                grid.querySelectorAll('.emoji-category').forEach(cat => {
+                    cat.style.display = '';
+                });
+                return;
+            }
+
+            // Simple: show all emojis (real emoji search requires a mapping library)
+            // For now, just show everything - the visual scan is fast enough
+            grid.querySelectorAll('.emoji-category').forEach(cat => {
+                cat.style.display = '';
+            });
+        }
+
+        function insertEmoji(emoji) {
+            if (!currentEmojiTarget) return;
+
+            const textarea = document.getElementById(currentEmojiTarget);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+
+            // Insert emoji at cursor position
+            textarea.value = text.substring(0, start) + emoji + text.substring(end);
+
+            // Move cursor after the emoji
+            const newPos = start + emoji.length;
+            textarea.setSelectionRange(newPos, newPos);
+            textarea.focus();
+
+            // Update char count if applicable
+            if (currentEmojiTarget === 'new-tweet-text') {
+                updateNewCharCount();
+            } else if (currentEmojiTarget === 'edit-tweet-text') {
+                updateEditCharCount();
+            }
+
+            // Close picker
+            closeEmojiPicker();
+        }
+
+        // Close emoji picker on outside click
+        document.addEventListener('click', (e) => {
+            if (currentEmojiPicker && !e.target.closest('.emoji-picker') && !e.target.closest('.btn-emoji-trigger')) {
+                closeEmojiPicker();
+            }
+        });
+
+        // Close emoji picker on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentEmojiPicker) {
+                closeEmojiPicker();
+            }
+        });
+
+        // Action toast — generic toast for POST, APPROVE, DELETE, etc.
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('action-toast');
+            toast.textContent = message;
+            toast.className = 'action-toast show ' + type;
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
         // Check login on load
         checkLogin();
+    
+        // Handle image paste in textareas
+        function handleImagePaste(event) {
+            const items = event.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    event.preventDefault();
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgTag = '![' + (blob.name || 'image') + '](' + e.target.result + ')';
+                        const textarea = event.target;
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = textarea.value;
+                        textarea.value = text.substring(0, start) + imgTag + text.substring(end);
+                        textarea.selectionStart = textarea.selectionEnd = start + imgTag.length;
+                        // Trigger input event to update char count
+                        textarea.dispatchEvent(new Event('input'));
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        }
     </script>
 </body>
 </html>

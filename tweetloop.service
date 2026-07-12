@@ -1,0 +1,15 @@
+[Unit]
+Description=TweetLoop App
+After=network.target
+
+[Service]
+Type=simple
+User=danny
+WorkingDirectory=/home/danny/workspace/tweetloop
+ExecStart=/home/danny/.local/share/virtualenvs/tweetloop/bin/python3 app.py
+Environment=PORT=7777
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

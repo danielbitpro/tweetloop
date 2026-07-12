@@ -4,7 +4,7 @@ import json
 import re
 from datetime import datetime
 
-DATA_FILE = "/home/danny/workspace/twitter-reviewer/data/tweets.json"
+DATA_FILE = "/home/danny/workspace/tweetloop/data/tweets.json"
 
 today = datetime.now().strftime("%Y-%m-%d")
 

@@ -1,22 +1,24 @@
         :root {
-            --bg-deep: #050505;
+            --bg-deep: #000000;
             --bg-primary: #0a0a0a;
-            --bg-secondary: #0f0f0f;
-            --bg-tertiary: #141414;
-            --bg-terminal: #0c110c;
-            --border-color: #1a2a1a;
-            --border-dim: #0f1f0f;
-            --text-primary: #34d399;
-            --text-secondary: #00cc33;
-            --text-muted: #006620;
-            --text-dim: #003d10;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --bg-terminal: #0d0d0d;
+            --border-color: #1e3a1e;
+            --border-dim: #152a15;
+            --text-primary: #00ff99;
+            --text-secondary: #00cc77;
+            --text-muted: #888888;
+            --text-dim: #555555;
             --accent-cyan: #00e5ff;
-            --accent-green: #34d399;
+            --accent-green: #00ff99;
             --accent-red: #ff3333;
             --accent-orange: #ff8800;
-            --accent-yellow: #ffff00;
-            --accent-white: #c0c0c0;
+            --accent-yellow: #ffb800;
+            --accent-white: #ffffff;
             --font-mono: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+            --radius: 6px;
+            --radius-sm: 4px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -89,10 +91,11 @@
         }
 
         .header-main {
-            padding: 12px 20px;
+            padding: 16px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 32px;
         }
 
         .header-title {
@@ -101,18 +104,19 @@
             color: var(--text-primary);
             letter-spacing: 1px;
             text-transform: uppercase;
+            white-space: nowrap;
         }
 
         .header-title .prefix { color: var(--text-muted); }
-        .header-title .accent { color: var(--accent-cyan); }
+        .header-title .accent { color: var(--accent-green); }
 
-        .header-actions { display: flex; gap: 8px; }
+        .header-actions { display: flex; gap: 12px; }
 
-        /* Buttons — terminal box style */
+        /* Buttons — modern pill style */
         .btn {
-            padding: 6px 14px;
+            padding: 8px 16px;
             border: 1px solid var(--border-color);
-            border-radius: 0;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 12px;
             transition: all 0.15s;
@@ -130,18 +134,19 @@
         }
 
         .btn-primary {
-            background: transparent;
+            background: var(--accent-green);
             border-color: var(--accent-green);
-            color: var(--accent-green);
+            color: var(--bg-deep);
+            font-weight: 600;
         }
 
         .btn-primary:hover {
-            background: var(--accent-green);
-            color: var(--bg-deep);
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+            background: #00cc77;
+            border-color: #00cc77;
+            box-shadow: 0 0 12px rgba(0, 255, 153, 0.3);
         }
 
-        .btn-sm { padding: 3px 10px; font-size: 10px; }
+        .btn-sm { padding: 5px 12px; font-size: 10px; }
 
         .btn-danger {
             border-color: var(--accent-red);
@@ -190,16 +195,20 @@
         .container {
             max-width: 960px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 24px 20px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* Summary Bar — Terminal Stats */
+        /* Summary Bar */
         .summary-bar {
             display: flex;
             gap: 0;
             margin-bottom: 24px;
             border: 1px solid var(--border-color);
             background: var(--bg-secondary);
+            border-radius: var(--radius);
+            overflow: hidden;
         }
 
         .summary-item {
@@ -237,9 +246,10 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 8px 14px;
+            padding: 10px 16px;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             cursor: pointer;
             user-select: none;
             transition: background 0.15s;
@@ -267,9 +277,10 @@
 
         .date-header .count-badge {
             border: 1px solid var(--border-color);
-            padding: 1px 8px;
+            padding: 2px 10px;
             font-size: 10px;
             color: var(--text-muted);
+            border-radius: var(--radius-sm);
         }
 
         .date-tweets {
@@ -279,11 +290,13 @@
 
         .date-tweets.collapsed { max-height: 0 !important; }
 
-        /* Tweet Card — Terminal Window Style */
+        /* Tweet Card */
         .tweet-card {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             margin-bottom: 16px;
+            border-radius: var(--radius);
+            overflow: hidden;
         }
 
         .tweet-card.scheduled { border-color: var(--accent-orange); }
@@ -292,12 +305,11 @@
         .tweet-card.verified { border-color: var(--accent-purple); }
         .tweet-card.manual { border-color: var(--accent-white); }
 
-        /* Terminal window top bar for tweet card */
         .tweet-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 12px;
+            padding: 8px 14px;
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
             font-size: 10px;
@@ -325,13 +337,13 @@
             letter-spacing: 0.5px;
         }
 
-        /* Status badges — square terminal tags */
+        /* Status badges — rounded pill style */
         .status-badge {
             display: inline-block;
-            padding: 1px 6px;
+            padding: 2px 8px;
             font-size: 9px;
             font-weight: 600;
-            border: 1px solid;
+            border-radius: 10px;
         }
 
         .status-badge.draft { background: transparent; border-color: var(--accent-orange); color: var(--accent-orange); }
@@ -341,6 +353,23 @@
         .status-badge.verified { background: rgba(188, 140, 255, 0.1); border-color: var(--accent-purple); color: var(--accent-purple); }
         .status-badge.manual { background: rgba(192, 192, 192, 0.1); border-color: var(--accent-white); color: var(--accent-white); }
 
+        /* Inline COPY button in header row */
+        .btn-copy-inline {
+            border-color: var(--text-muted);
+            color: var(--text-muted);
+        }
+
+        .btn-copy-inline:hover {
+            background: var(--border-color);
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .btn-copy-inline.copied {
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
         /* Tweet text in code block */
         .tweet-code-block {
             position: relative;
@@ -348,6 +377,7 @@
             border: 1px solid var(--border-dim);
             border-top: none;
             overflow: hidden;
+            border-radius: 0 0 var(--radius) var(--radius);
         }
 
         .tweet-code-text {
@@ -363,26 +393,7 @@
             background: transparent;
         }
 
-        .btn-copy-block {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            padding: 2px 8px;
-            font-size: 9px;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: all 0.15s;
-            z-index: 1;
-            font-family: var(--font-mono);
-        }
 
-        .btn-copy-block:hover {
-            background: var(--border-color);
-            color: var(--accent-green);
-            border-color: var(--accent-green);
-        }
 
         /* Copied notification — inline, no modal */
         .copied-toast {
@@ -406,7 +417,52 @@
         .copied-toast.show {
             opacity: 1;
             transform: translateY(0);
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 153, 0.4);
+            border-radius: var(--radius-sm);
+        }
+
+        /* Action toast — generic toast for POST, APPROVE, DELETE, etc. */
+        .action-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 10px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 10001;
+            font-family: var(--font-mono);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease-out;
+            pointer-events: none;
+            border: 1px solid;
+            border-radius: var(--radius-sm);
+        }
+
+        .action-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .action-toast.success {
+            background: var(--accent-green);
+            color: var(--bg-deep);
+            border-color: var(--accent-green);
+            box-shadow: 0 0 20px rgba(0, 255, 153, 0.4);
+        }
+
+        .action-toast.error {
+            background: var(--accent-red);
+            color: var(--bg-deep);
+            border-color: var(--accent-red);
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.4);
+        }
+
+        .action-toast.info {
+            background: var(--accent-cyan);
+            color: var(--bg-deep);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
         }
 
         /* Why it works annotation */
@@ -425,19 +481,32 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 12px;
+            padding: 8px 12px;
             font-size: 10px;
             color: var(--text-muted);
             border-top: 1px solid var(--border-color);
             font-family: var(--font-mono);
+            border-radius: 0 0 var(--radius) var(--radius);
         }
 
         .tweet-hashtags { color: var(--accent-green); }
 
+        .tweet-source-link {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.15s;
+        }
+
+        .tweet-source-link:hover {
+            color: #33ffff;
+            text-decoration: underline;
+        }
+
         .tweet-actions {
             display: flex;
-            gap: 4px;
-            padding: 6px 12px;
+            gap: 6px;
+            padding: 8px 12px;
             border-top: 1px solid var(--border-color);
             background: var(--bg-secondary);
         }
@@ -483,10 +552,10 @@
         .search-input {
             flex: 1;
             min-width: 200px;
-            padding: 8px 12px;
+            padding: 10px 16px;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 0;
+            border-radius: var(--radius-sm);
             color: var(--text-primary);
             font-size: 12px;
             font-family: var(--font-mono);
@@ -495,16 +564,17 @@
 
         .search-input:focus {
             border-color: var(--accent-green);
-            box-shadow: 0 0 5px rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 153, 0.15);
+            border-radius: var(--radius-sm);
         }
 
         .search-input::placeholder { color: var(--text-dim); }
 
         .filter-select {
-            padding: 6px 10px;
+            padding: 8px 12px;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 0;
+            border-radius: var(--radius-sm);
             color: var(--text-secondary);
             font-size: 11px;
             font-family: var(--font-mono);
@@ -524,9 +594,10 @@
         /* Bulk action bar */
         .bulk-bar {
             display: none;
-            padding: 8px 14px;
+            padding: 10px 16px;
             background: var(--bg-secondary);
             border: 1px solid var(--accent-cyan);
+            border-radius: var(--radius);
             margin-bottom: 16px;
             font-size: 11px;
             color: var(--accent-cyan);
@@ -607,7 +678,7 @@
             font-weight: bold;
         }
 
-        /* Modal — terminal style */
+        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -622,10 +693,12 @@
         .modal {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
             overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 153, 0.05);
         }
 
         .modal-header {
@@ -640,6 +713,71 @@
         }
 
         .modal-body { padding: 16px; }
+        /* Copy Modal - hidden by default */
+        .copy-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .copy-modal-overlay.active {
+            display: flex;
+        }
+
+        .copy-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            min-width: 400px;
+            max-width: 600px;
+        }
+
+        .copy-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .copy-modal-body {
+            padding: 16px;
+        }
+
+        .copy-modal-textarea {
+            width: 100%;
+            min-height: 120px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            padding: 12px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .copy-modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .copy-modal-footer .hint {
+            color: var(--accent-green);
+        }
+
 
         .form-group { margin-bottom: 14px; }
 
@@ -655,10 +793,10 @@
         .form-group input,
         .form-group textarea {
             width: 100%;
-            padding: 8px 12px;
+            padding: 10px 14px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
-            border-radius: 0;
+            border-radius: var(--radius-sm);
             color: var(--text-primary);
             font-size: 13px;
             font-family: var(--font-mono);
@@ -704,8 +842,10 @@
             top: 100%;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
             z-index: 200;
             min-width: 140px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         }
 
         .export-menu.active { display: block; }
@@ -735,6 +875,7 @@
         .preview-card {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             padding: 12px;
             font-family: var(--font-mono);
         }
@@ -791,6 +932,7 @@
         .audit-panel {
             border: 1px solid var(--border-color);
             background: var(--bg-secondary);
+            border-radius: var(--radius);
             margin-bottom: 16px;
         }
 
@@ -846,17 +988,23 @@
             display: none;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            overflow: auto;
         }
 
         .login-overlay.active { display: flex; }
 
+
+
         .login-box {
             background: var(--bg-primary);
             border: 1px solid var(--accent-green);
-            padding: 30px;
+            border-radius: var(--radius);
+            padding: 36px 40px;
             width: 90%;
             max-width: 400px;
             text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 153, 0.05);
         }
 
         .login-box h2 {
@@ -922,4 +1070,255 @@
             .summary-item { min-width: 80px; }
             .tweet-actions { flex-wrap: wrap; }
             .search-bar { flex-direction: column; }
+        }
+
+        /* ── Emoji Picker ─────────────────────────────────────────── */
+        .emoji-input-wrapper {
+            position: relative;
+        }
+
+        .emoji-input-wrapper textarea {
+            width: 100%;
+            padding-right: 44px;
+        }
+
+        .btn-emoji-trigger {
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            font-size: 18px;
+            padding: 4px 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s;
+            line-height: 1;
+        }
+
+        .btn-emoji-trigger:hover {
+            background: var(--border-color);
+            border-color: var(--accent-green);
+        }
+
+        .emoji-picker {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            max-height: 320px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 153, 0.05);
+            width: 320px;
+        }
+
+        .emoji-picker.active {
+            display: block;
+        }
+
+        .emoji-search {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            outline: none;
+        }
+
+        .emoji-search:focus {
+            border-bottom-color: var(--accent-green);
+        }
+
+        .emoji-search::placeholder {
+            color: var(--text-dim);
+        }
+
+        .emoji-grid {
+            padding: 8px;
+        }
+
+        .emoji-category {
+            margin-bottom: 12px;
+        }
+
+        .emoji-category:last-child {
+            margin-bottom: 0;
+        }
+
+        .emoji-category-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 8px;
+            margin-bottom: 4px;
+        }
+
+        .emoji-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+        }
+
+        .emoji-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.1s;
+        }
+
+        .emoji-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+            transform: scale(1.2);
+        }
+
+        .emoji-btn:active {
+            transform: scale(1.1);
+        }
+
+
+        /* ===== Button Layout Fixes ===== */
+        .tweet-actions-right {
+            display: flex;
+            gap: 6px;
+            padding: 8px 12px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .tweet-actions-right .btn {
+            flex: none;
+            padding: 5px 12px;
+            font-size: 10px;
+            min-width: auto;
+            text-align: center;
+        }
+
+        /* ===== Mobile Responsive ===== */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+            }
+
+            .header-main {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px 16px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+
+            .container {
+                padding: 16px 12px;
+            }
+
+            .summary-bar {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .summary-item {
+                flex: 1 1 25%;
+                padding: 8px;
+            }
+
+            .summary-item .count {
+                font-size: 18px;
+            }
+
+            .search-bar {
+                flex-direction: column;
+            }
+
+            .tweet-card-header {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+            }
+
+            .tweet-card-header .right {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .tweet-actions-right {
+                flex-direction: column;
+            }
+
+            .tweet-actions-right .btn {
+                width: 100%;
+            }
+
+            .modal {
+                min-width: auto;
+                width: 95%;
+                max-width: 95%;
+            }
+
+            .copy-modal {
+                min-width: auto;
+                width: 95%;
+                max-width: 95%;
+            }
+
+            .date-header {
+                font-size: 11px;
+                padding: 8px 12px;
+            }
+
+            .btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            .btn-sm {
+                padding: 4px 8px;
+                font-size: 9px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-title {
+                font-size: 12px;
+            }
+
+            .summary-item .count {
+                font-size: 16px;
+            }
+
+            .tweet-code-text {
+                font-size: 12px;
+                padding: 10px 24px 10px 10px;
+            }
+
+            .tweet-actions-right {
+                gap: 4px;
+                padding: 6px 8px;
+            }
+
+            .tweet-actions-right .btn {
+                min-width: 60px;
+                font-size: 9px;
+                padding: 4px 6px;
+            }
         }

@@ -1,18 +1,32 @@
-# Local data
-data/*.json
-data/tweets.json
-
 # Environment
 .env
-__pycache__/
-*.pyc
-venv/
+.env.bak
+*.bak
+
+# Virtual environment
 .venv/
+venv/
+__pycache__/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Data files
+data/*.json
+data/*.db
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
