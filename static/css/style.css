@@ -1000,11 +1000,67 @@
             background: var(--bg-primary);
             border: 1px solid var(--accent-green);
             border-radius: var(--radius);
-            padding: 36px 40px;
+            padding: 48px 40px 36px;
             width: 90%;
-            max-width: 400px;
+            max-width: 420px;
             text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 153, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(52, 211, 153, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        .login-brand {
+            margin-bottom: 32px;
+        }
+
+        .brand-icon {
+            font-size: 48px;
+            color: var(--accent-green);
+            margin-bottom: 12px;
+            animation: spin 8s linear infinite;
+            display: inline-block;
+            text-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .login-brand h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-green);
+            margin: 0 0 8px;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+            font-family: var(--font-mono);
+        }
+
+        .brand-tagline {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin: 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: var(--font-mono);
         }
 
         .login-box h2 {

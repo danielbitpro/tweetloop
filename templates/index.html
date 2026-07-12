@@ -16,7 +16,11 @@
     <!-- Login Screen -->
     <div class="login-overlay" id="login-overlay">
         <div class="login-box">
-            <h2>> ACCESS_REQUIRED</h2>
+            <div class="login-brand">
+                <div class="brand-icon">⟳</div>
+                <h1>TweetLoop</h1>
+                <p class="brand-tagline">Research → Review → Post</p>
+            </div>
             <input type="password" id="login-password" placeholder="Enter password..." autofocus>
             <button class="btn btn-primary" style="width:100%;" onclick="attemptLogin()">AUTHENTICATE</button>
             <div class="login-error" id="login-error">ACCESS DENIED</div>
@@ -38,7 +42,7 @@
         </div>
         <div class="header-main">
             <div class="header-title">
-                <span class="prefix">&gt;</span> <span class="accent">TWEET</span>_REVIEWER
+                <span class="prefix">&gt;</span> <span class="accent">TWEET</span>LOOP
             </div>
             <div class="header-actions">
                 <a href="/settings" class="btn" style="text-decoration: none; color: inherit;">⚙ SETTINGS</a>
