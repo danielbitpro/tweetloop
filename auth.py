@@ -27,9 +27,9 @@ def get_password():
         with open(env_path, 'r') as f:
             for line in f:
                 line = line.strip()
-                if line.startswith('REVIEWER_PASSWORD='):
+                if line.startswith('PASSWORD='):
                     return line.split('=', 1)[1].strip().strip('"').strip("'")
-    return os.environ.get('REVIEWER_PASSWORD', '')
+    return os.environ.get('PASSWORD', '')
 
 PASSWORD_HASH = get_password()
 USE_PASSWORD_AUTH = bool(PASSWORD_HASH)
