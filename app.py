@@ -386,4 +386,14 @@ def add_cache_headers(response):
     return response
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=PORT, debug=False)
+    PORT = int(os.environ.get('PORT', 7777))
+    CERT_DIR = os.path.join(os.path.dirname(__file__), 'certs')
+    CERT_FILE = os.path.join(CERT_DIR, 'cert.pem')
+    KEY_FILE = os.path.join(CERT_DIR, 'key.pem')
+    
+    if os.path.exists(CERT_FILE) and os.path.exists(KEY_FILE):
+        print(f"[TweetLoop] Starting HTTPS on port {PORT}")
+        app.run(host='0.0.0.0', port=PORT, debug=False, ssl_context=(CERT_FILE, KEY_FILE))
+    else:
+        print(f"[TweetLoop] Starting HTTP on port {PORT} (no certs found in {CERT_DIR})")
+        app.run(host='0.0.0.0', port=PORT, debug=False)
