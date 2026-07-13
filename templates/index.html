@@ -491,6 +491,7 @@
                         <button class="btn btn-sm" onclick="postTweet('${tweet.id}')">POST</button>
                         <button class="btn btn-sm" onclick="toggleManualPost('${tweet.id}', this)">MANUAL</button>
                         <button class="btn btn-sm" onclick="editSchedule('${tweet.id}')">SCHEDULE</button>
+                        <button class="btn btn-sm" onclick="factCheckTweet('${tweet.id}')" style="border-color: var(--accent-orange); color: var(--accent-orange);">FACT CHECK</button>
                     </div>
                 </div>
             `;
@@ -765,6 +766,14 @@
                 body: JSON.stringify({ status: newStatus })
             });
             fetchTweets();
+        }
+
+        function factCheckTweet(id) {
+            const el = document.getElementById(`text-${id}`);
+            if (!el) return;
+            const text = el.textContent;
+            const query = encodeURIComponent(text);
+            window.open(`https://www.google.com/search?q=${query}`, '_blank');
         }
 
         async function editSchedule(id) {
