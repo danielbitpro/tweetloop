@@ -400,13 +400,13 @@ def _select_sqlite(
 
 
 def _insert_sqlite(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute INSERT against SQLite."""
+    """Execute INSERT against SQLite (INSERT OR IGNORE to prevent duplicate key errors)."""
     conn = _get_sqlite_connection()
     _init_sqlite(conn)
 
     columns = ", ".join(data.keys())
     placeholders = ", ".join(["?"] * len(data))
-    query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+    query = f"INSERT OR IGNORE INTO {table} ({columns}) VALUES ({placeholders})"
 
     conn.execute(query, list(data.values()))
     conn.commit()

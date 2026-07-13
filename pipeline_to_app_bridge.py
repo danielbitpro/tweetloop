@@ -3,12 +3,13 @@
 Pipeline to App Bridge
 
 Reads the verified tweets from the X-proposed-tweets pipeline output
-and updates the TweetLoop app's database (tweets.json).
+and updates the TweetLoop app's SQLite database.
 """
 
 import json
 import re
 import hashlib
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 
@@ -16,23 +17,51 @@ from pathlib import Path
 WORKSPACE = Path("/home/danny/workspace")
 X_PROPOSED_DIR = WORKSPACE / "X-proposed-tweets"
 X_BRIEFINGS_DIR = WORKSPACE / "X-briefings"
-DATA_FILE = Path("/home/danny/workspace/tweetloop/data/tweets.json")
+DB_FILE = Path("/home/danny/workspace/twitter-reviewer/data/tweetloop.db")
 
 
 def load_tweets():
-    if not DATA_FILE.exists():
+    """Load all tweets from the SQLite database."""
+    if not DB_FILE.exists():
         return []
     try:
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError):
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT * FROM tweets')
+        tweets = [dict(row) for row in c.fetchall()]
+        conn.close()
+        return tweets
+    except (sqlite3.Error, FileNotFoundError):
         return []
 
 
 def save_tweets(tweets):
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(DATA_FILE, 'w') as f:
-        json.dump(tweets, f, indent=2)
+    """Save all tweets to the SQLite database."""
+    DB_FILE.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    # Clear existing tweets and re-insert (simple approach)
+    c.execute('DELETE FROM tweets')
+    for tweet in tweets:
+        c.execute('''
+            INSERT INTO tweets (id, text, label, hashtags, why_it_works, section_number, source_url, status, date, schedule_time, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            tweet.get('id'),
+            tweet.get('text'),
+            tweet.get('label'),
+            tweet.get('hashtags', ''),
+            tweet.get('why_it_works'),
+            tweet.get('section_number'),
+            tweet.get('source_url'),
+            tweet.get('status', 'draft'),
+            tweet.get('date'),
+            tweet.get('schedule_time'),
+            tweet.get('source', 'pipeline'),
+        ))
+    conn.commit()
+    conn.close()
 
 
 def extract_source_url_from_block(block):
@@ -187,6 +216,7 @@ def bridge():
         if text not in existing_keys:
             app_tweets.append({
                 'id': generate_id(text, today),
+                'user_id': '00000000-0000-0000-0000-000000000001',
                 'text': text,
                 'label': tweet_data.get('label'),
                 'hashtags': tweet_data.get('hashtags', ''),
