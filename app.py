@@ -82,7 +82,7 @@ DEFAULT_SETTINGS = {
         },
         "keywords": [],
         "language": "en",
-        "date_range": "24h",
+        "research_days": 1,
         "manual_url_check": False,
         "manual_urls": [],
         "reddit_subreddits": ["LocalLLaMA", "LocalLLM", "opensourceAI", "MachineLearning"],
@@ -115,13 +115,21 @@ DEFAULT_SETTINGS = {
 }
 
 # ---------------------------------------------------------------------------
-# Startup: migrate existing JSON data to database
+# Startup: migrate existing JSON data to database (once)
 # ---------------------------------------------------------------------------
+
+_migrated = False
 
 @app.before_request
 def _migrate_on_startup():
-    """Migrate JSON files to database on first startup."""
-    if not USE_SUPABASE:
+    """Migrate JSON files to database on first startup only."""
+    global _migrated
+    if _migrated:
+        return
+    if USE_SUPABASE:
+        _migrated = True
+        return
+    try:
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         tweets_json = os.path.join(data_dir, 'tweets.json')
         settings_json = os.path.join(data_dir, 'settings.json')
@@ -131,6 +139,10 @@ def _migrate_on_startup():
         
         if migrated_tweets or migrated_settings:
             print(f"[TweetLoop] Migrated {migrated_tweets} tweets, {migrated_settings} settings to database")
+        _migrated = True
+    except Exception as e:
+        print(f"[TweetLoop] Migration error: {e}")
+        _migrated = True
 
 
 # ---------------------------------------------------------------------------

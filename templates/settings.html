@@ -291,13 +291,9 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Date Range</label>
-                <select id="setting-date-range">
-                    <option value="24h">Last 24 hours</option>
-                    <option value="7d">Last 7 days</option>
-                    <option value="14d">Last 14 days</option>
-                    <option value="30d">Last 30 days</option>
-                </select>
+                <label>Research Window (Days)</label>
+                <input type="number" id="setting-research-days" value="1" min="1" max="365">
+                <div class="hint">How many days back to search for stories (1–365). Default: 1 day</div>
             </div>
             <div class="form-group">
                 <label>Max Stories to Research (Total)</label>
@@ -578,7 +574,7 @@ https://example.com/blog/..."></textarea>
                 document.getElementById('source-tech_blogs').checked = sources.tech_blogs ?? false;
                 document.getElementById('setting-keywords').value = (settings.research?.keywords || []).join(', ');
                 document.getElementById('setting-language').value = settings.research?.language || 'en';
-                document.getElementById('setting-date-range').value = settings.research?.date_range || '24h';
+                document.getElementById('setting-research-days').value = settings.research?.research_days || 1;
                 document.getElementById('setting-reddit-subs').value = (settings.research?.reddit_subreddits || ['LocalLLaMA', 'LocalLLM', 'opensourceAI', 'MachineLearning']).join(', ');
                 document.getElementById('setting-max-stories').value = settings.research?.max_stories ?? 15;
                 document.getElementById('setting-manual-url-check').checked = settings.research?.manual_url_check ?? false;
@@ -661,7 +657,7 @@ https://example.com/blog/..."></textarea>
                     },
                     keywords: document.getElementById('setting-keywords').value.split(',').map(k => k.trim()).filter(k => k),
                     language: document.getElementById('setting-language').value,
-                    date_range: document.getElementById('setting-date-range').value,
+                    research_days: parseInt(document.getElementById('setting-research-days').value) || 1,
                     max_stories: parseInt(document.getElementById('setting-max-stories').value) || 15,
                     manual_url_check: document.getElementById('setting-manual-url-check').checked,
                     manual_urls: document.getElementById('setting-manual-urls').value.split('\n').map(u => u.trim()).filter(u => u && u.startsWith('http')),
