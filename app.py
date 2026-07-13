@@ -81,6 +81,8 @@ DEFAULT_SETTINGS = {
             "tech_blogs": False,
         },
         "keywords": [],
+        "custom_x_accounts": [],
+        "custom_urls": [],
         "language": "en",
         "research_days": 1,
         "min_history": 30,

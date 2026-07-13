@@ -278,11 +278,31 @@
                 <input type="checkbox" id="source-tech_blogs">
                 <label for="source-tech_blogs">Tech Blogs (VentureBeat, The Verge, etc.)</label>
             </div>
-            <div class="form-group" style="margin-top: 20px;">
-                <label>Custom Keywords (comma-separated)</label>
-                <input type="text" id="setting-keywords" placeholder="local AI, LLM, open source, inference">
+
+            <!-- Custom Sources Section -->
+            <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                <h3 style="color: var(--accent-cyan); font-size: 14px; margin-bottom: 16px;">➕ CUSTOM SOURCES</h3>
+
+                <div class="form-group">
+                    <label>Custom X/Twitter Accounts to Watch (one per line, no @)</label>
+                    <textarea id="setting-custom-x-accounts" placeholder="karpathy&#10;AndrewYNg&#10;sama&#10;OpenAIDevs"></textarea>
+                    <div class="hint">These X accounts will be monitored for new posts during research. One username per line.</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Custom URLs to Monitor (one per line)</label>
+                    <textarea id="setting-custom-urls" placeholder="https://twitter.com/karpathy&#10;https://github.com/openai/whisper&#10;https://arxiv.org/list/cs.AI/recent"></textarea>
+                    <div class="hint">These URLs will be checked for new content during research. One URL per line.</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Custom Keywords (comma-separated)</label>
+                    <input type="text" id="setting-keywords" placeholder="local AI, LLM, open source, inference, transformers">
+                    <div class="hint">Additional keywords to search for across all sources.</div>
+                </div>
             </div>
-            <div class="form-group">
+
+            <div class="form-group" style="margin-top: 20px;">
                 <label>Language Filter</label>
                 <select id="setting-language">
                     <option value="en">English</option>
@@ -620,6 +640,9 @@ https://example.com/blog/..."></textarea>
                 document.getElementById('setting-min-history').value = settings.research?.min_history || 30;
                 document.getElementById('setting-enable-archive').checked = settings.research?.enable_archive ?? false;
                 document.getElementById('setting-reddit-subs').value = (settings.research?.reddit_subreddits || ['LocalLLaMA', 'LocalLLM', 'opensourceAI', 'MachineLearning']).join(', ');
+                document.getElementById('setting-custom-x-accounts').value = (settings.research?.custom_x_accounts || []).join('\n');
+                document.getElementById('setting-custom-urls').value = (settings.research?.custom_urls || []).join('\n');
+                document.getElementById('setting-keywords').value = (settings.research?.keywords || []).join(', ');
                 document.getElementById('setting-max-stories').value = settings.research?.max_stories ?? 15;
                 document.getElementById('setting-manual-url-check').checked = settings.research?.manual_url_check ?? false;
                 document.getElementById('setting-manual-urls').value = (settings.research?.manual_urls || []).join('\\n');
@@ -715,6 +738,9 @@ https://example.com/blog/..."></textarea>
                     manual_url_check: document.getElementById('setting-manual-url-check').checked,
                     manual_urls: document.getElementById('setting-manual-urls').value.split('\n').map(u => u.trim()).filter(u => u && u.startsWith('http')),
                     reddit_subreddits: document.getElementById('setting-reddit-subs').value.split(',').map(s => s.trim()).filter(s => s),
+                    custom_x_accounts: document.getElementById('setting-custom-x-accounts').value.split('\n').map(a => a.trim()).filter(a => a),
+                    custom_urls: document.getElementById('setting-custom-urls').value.split('\n').map(u => u.trim()).filter(u => u && u.startsWith('http')),
+                    keywords: document.getElementById('setting-keywords').value.split(',').map(k => k.trim()).filter(k => k),
                     max_proposals: parseInt(document.getElementById('setting-max-proposals').value) || 10,
                     source_quotas: Object.fromEntries(
                         Array.from(document.querySelectorAll('.quota-input')).map(input => [
