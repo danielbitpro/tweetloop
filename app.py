@@ -362,16 +362,34 @@ def health():
 # Favicon
 # ---------------------------------------------------------------------------
 
-@app.route('/favicon.svg')
-def favicon_svg():
+@app.route('/favicon.ico')
+def favicon_ico():
     from flask import send_from_directory
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.svg', mimetype='image/svg+xml')
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/x-icon')
 
 
-@app.route('/favicon.png')
-def favicon_png():
+@app.route('/favicon-32x32.png')
+def favicon_32():
     from flask import send_from_directory
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.png', mimetype='image/png')
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon-32x32.png', mimetype='image/png')
+
+
+@app.route('/favicon-16x16.png')
+def favicon_16():
+    from flask import send_from_directory
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon-16x16.png', mimetype='image/png')
+
+
+@app.route('/apple-touch-icon.png')
+def apple_touch_icon():
+    from flask import send_from_directory
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'apple-touch-icon.png', mimetype='image/png')
+
+
+@app.route('/site.webmanifest')
+def web_manifest():
+    from flask import send_from_directory
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'site.webmanifest', mimetype='application/manifest+json')
 
 
 # ---------------------------------------------------------------------------
