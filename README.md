@@ -65,29 +65,24 @@ Navigate to `http://localhost:7777`
 
 ## Integration with AI Pipeline
 
-TweetLoop reads verified tweets from a JSON file. The `pipeline_to_app_bridge.py` script automates this:
-
-```json
-[
-  {
-    "id": "unique-id",
-    "text": "Your tweet text",
-    "hashtags": "#AI #LocalLLM",
-    "status": "draft",
-    "schedule_time": "2024-01-01T08:00:00",
-    "source": "Twitter",
-    "source_url": "https://twitter.com/..."
-  }
-]
-```
+TweetLoop reads verified tweets from pipeline output. The `pipeline_to_app_bridge.py` script automates this:
 
 ### Bridge Script
 
 ```bash
+# Configure paths via environment variables (optional)
+export TLP_WORKSPACE=/path/to/workspace
+export TLP_DB_PATH=/path/to/data/tweetloop.db
+
+# Run the bridge
 python3 pipeline_to_app_bridge.py
 ```
 
-This reads pipeline output and imports new tweets into the app, checking for duplicates.
+The bridge reads from `X-proposed-tweets/{date}-final.md` and imports new tweets into the app's SQLite database, checking for duplicates.
+
+### Manual Tweet Addition
+
+Use the "+ NEW" button in the dashboard to manually create tweets outside your pipeline.
 
 ## Hermes Agent Integration
 

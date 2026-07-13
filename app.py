@@ -246,8 +246,8 @@ def delete_tweet(tweet_id):
 
 def post_tweet_via_xurl(tweet_text):
     """Post a tweet using xurl CLI. Returns (success, message)."""
-    escaped_text = tweet_text.replace("'", "'\\''")
-    cmd = [XURL_PATH, '--app', 'twitter', 'post', escaped_text]
+    escaped_text = tweet_text.replace("'", "'\\\\''")
+    cmd = [XURL_PATH, '--app', 'twitter', '--auth', 'oauth1', 'post', escaped_text]
     env = os.environ.copy()
     env['PATH'] = os.path.expanduser('~/.local/bin') + ':' + env.get('PATH', '')
     try:

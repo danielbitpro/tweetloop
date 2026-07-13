@@ -1,10 +1,13 @@
 #!/bin/bash
 
 # Start TweetLoop App
-cd /home/danny/workspace/tweetloop
+# Usage: ./start.sh [port]
+# Or:   PORT=8080 ./start.sh
+
+cd "$(dirname "$0")"
 
 # Install dependencies if needed
-pip install flask > /dev/null 2>&1
+pip install -q flask > /dev/null 2>&1
 
 # Start the app
 python3 app.py

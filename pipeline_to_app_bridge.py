@@ -7,17 +7,18 @@ and updates the TweetLoop app's SQLite database.
 """
 
 import json
+import os
 import re
 import hashlib
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-# Paths
-WORKSPACE = Path("/home/danny/workspace")
+# Paths - configurable via environment variables
+WORKSPACE = Path(os.environ.get("TLP_WORKSPACE", Path.home() / "workspace"))
 X_PROPOSED_DIR = WORKSPACE / "X-proposed-tweets"
 X_BRIEFINGS_DIR = WORKSPACE / "X-briefings"
-DB_FILE = Path("/home/danny/workspace/twitter-reviewer/data/tweetloop.db")
+DB_FILE = Path(os.environ.get("TLP_DB_PATH", Path(__file__).parent / "data" / "tweetloop.db"))
 
 
 def load_tweets():

@@ -11,28 +11,36 @@ This skill integrates your AI pipeline with the TweetLoop dashboard.
 ## Integration Steps
 
 1. When your pipeline finishes verification, save the tweets to:
-   `/path/to/tweetloop/data/tweets.json`
+   `X-proposed-tweets/{date}-final.md`
 
 2. Format each tweet as:
-```json
-{
-  "id": "unique-uuid",
-  "text": "Tweet content here",
-  "hashtags": "#hashtags",
-  "status": "draft",
-  "schedule_time": null
-}
+```markdown
+## X. [Label] | **Tweet:**
+> Tweet text line 1
+>
+> #Hashtag
+|
+**Source:** [Name](url)
+**Why it works:** ...
 ```
 
-3. The dashboard will automatically display your tweets.
+3. Run the bridge script to import tweets:
+```bash
+python3 pipeline_to_app_bridge.py
+```
 
-## Manual Tweet Addition
-
-Use the "+ Add Tweet" button in the dashboard to manually create tweets outside your pipeline.
+The bridge will read the pipeline output and import new tweets into the app's SQLite database.
 
 ## Configuration
 
 Change the port by setting `PORT` environment variable:
 ```bash
 PORT=8080 python3 app.py
+```
+
+Configure pipeline paths:
+```bash
+export TLP_WORKSPACE=/path/to/workspace
+export TLP_DB_PATH=/path/to/data/tweetloop.db
+python3 pipeline_to_app_bridge.py
 ```

@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=danny
 WorkingDirectory=/home/danny/workspace/tweetloop
-ExecStart=/home/danny/.local/share/virtualenvs/tweetloop/bin/python3 app.py
+ExecStart=/usr/bin/python3 /home/danny/workspace/tweetloop/app.py
 Environment=PORT=7777
 Restart=always
 RestartSec=10
