@@ -554,6 +554,59 @@
             font-weight: 600;
         }
 
+        /* Auto-Post Banner */
+        .autopost-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--accent-cyan);
+            padding: 12px 20px;
+            z-index: 1001;
+            box-shadow: 0 4px 20px rgba(0, 229, 255, 0.2);
+        }
+
+        .autopost-banner-content {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .autopost-banner-icon {
+            font-size: 24px;
+        }
+
+        .autopost-banner-text {
+            flex: 1;
+        }
+
+        .autopost-banner-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 4px;
+        }
+
+        .autopost-banner-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .autopost-banner-desc #autopost-posted-today,
+        .autopost-banner-desc #autopost-max-posts,
+        .autopost-banner-desc #autopost-remaining {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .autopost-banner-desc #autopost-next-time {
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+
         .tweet-actions {
             display: flex;
             gap: 6px;

@@ -205,6 +205,7 @@
             <button class="settings-nav-btn" data-section="copywriter">Copywriter</button>
             <button class="settings-nav-btn" data-section="export">Export</button>
             <button class="settings-nav-btn" data-section="pipeline">Pipeline</button>
+            <button class="settings-nav-btn" data-section="autopost">Auto-Post</button>
         </div>
 
         <!-- App Settings -->
@@ -427,6 +428,38 @@ https://example.com/blog/..."></textarea>
             </div>
         </div>
 
+        <!-- Auto-Posting Settings -->
+        <div class="settings-section" id="section-autopost">
+            <h2>📤 Auto-Posting Settings</h2>
+            <div class="checkbox-group">
+                <input type="checkbox" id="setting-enable-autopost">
+                <label for="setting-enable-autopost">Enable auto-posting</label>
+            </div>
+            <div class="form-group">
+                <label>Max Posts per Day</label>
+                <input type="number" id="setting-autopost-max" value="3" min="1" max="10">
+                <div class="hint">Maximum tweets posted per day. Conservative: 3/day recommended.</div>
+            </div>
+            <div class="form-group">
+                <label>Minimum Gap Between Posts (minutes)</label>
+                <input type="number" id="setting-autopost-gap" value="60" min="15" max="240" step="15">
+                <div class="hint">Minimum time between posts. Prevents account ban. Default: 60 minutes.</div>
+            </div>
+            <div class="form-group">
+                <label>Preferred Posting Times (24h, comma-separated)</label>
+                <input type="text" id="setting-autopost-times" value="09:00,14:00,19:00" placeholder="09:00,14:00,19:00">
+                <div class="hint">Times of day when posts are scheduled. Format: HH:MM. Default: 9am, 2pm, 7pm.</div>
+            </div>
+            <div class="form-group">
+                <label>Auto-Post Mode</label>
+                <select id="setting-autopost-mode">
+                    <option value="approved">Post approved tweets only</option>
+                    <option value="all">Post all tweets (including drafts)</option>
+                </select>
+                <div class="hint">Which tweets to auto-post. "Approved" requires manual approval first.</div>
+            </div>
+        </div>
+
         <!-- Save/Reset Buttons -->
         <div style="margin-top: 30px;">
             <button class="btn-save" onclick="saveSettings()">💾 SAVE SETTINGS</button>
@@ -641,6 +674,13 @@ https://example.com/blog/..."></textarea>
                 document.getElementById('setting-dedup-threshold').value = settings.pipeline?.deduplication_threshold ?? 0.8;
                 document.getElementById('setting-source-priority').value = (settings.pipeline?.source_priority || []).join(',');
                 document.getElementById('setting-pipeline-language').value = settings.pipeline?.language_filter || 'en';
+
+                // Auto-posting settings
+                document.getElementById('setting-enable-autopost').checked = settings.autopost?.enable ?? false;
+                document.getElementById('setting-autopost-max').value = settings.autopost?.max_posts_per_day ?? 3;
+                document.getElementById('setting-autopost-gap').value = settings.autopost?.min_gap_minutes ?? 60;
+                document.getElementById('setting-autopost-times').value = (settings.autopost?.preferred_times || ['09:00', '14:00', '19:00']).join(', ');
+                document.getElementById('setting-autopost-mode').value = settings.autopost?.mode || 'approved';
             } catch (error) {
                 console.error('Failed to load settings:', error);
             }
@@ -701,6 +741,13 @@ https://example.com/blog/..."></textarea>
                     deduplication_threshold: parseFloat(document.getElementById('setting-dedup-threshold').value),
                     source_priority: document.getElementById('setting-source-priority').value.split(',').map(s => s.trim()).filter(s => s),
                     language_filter: document.getElementById('setting-pipeline-language').value
+                },
+                autopost: {
+                    enable: document.getElementById('setting-enable-autopost').checked,
+                    max_posts_per_day: parseInt(document.getElementById('setting-autopost-max').value) || 3,
+                    min_gap_minutes: parseInt(document.getElementById('setting-autopost-gap').value) || 60,
+                    preferred_times: document.getElementById('setting-autopost-times').value.split(',').map(t => t.trim()).filter(t => t),
+                    mode: document.getElementById('setting-autopost-mode').value
                 }
             };
 

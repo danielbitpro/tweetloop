@@ -53,6 +53,7 @@
                 <a href="/settings" class="btn" style="text-decoration: none; color: inherit;">⚙ SETTINGS</a>
                 <button class="btn" onclick="fetchTweets()">REFRESH</button>
                 <button class="btn btn-primary" onclick="showModal('add-modal')">+ NEW</button>
+                <button class="btn" onclick="showManualResearchModal()">🔍 QUICK RESEARCH</button>
                 <div class="export-dropdown">
                     <button class="btn" onclick="toggleExportMenu()">EXPORT</button>
                     <div class="export-menu" id="export-menu">
@@ -227,6 +228,50 @@
     <!-- Action Toast -->
     <div class="action-toast" id="action-toast"></div>
 
+    <!-- Auto-Post Status Banner -->
+    <div class="autopost-banner" id="autopost-banner" style="display: none;">
+        <div class="autopost-banner-content">
+            <div class="autopost-banner-icon">📤</div>
+            <div class="autopost-banner-text">
+                <div class="autopost-banner-title">Auto-Posting Active</div>
+                <div class="autopost-banner-desc">
+                    <span id="autopost-posted-today">0</span>/<span id="autopost-max-posts">3</span> posted today · Next: <span id="autopost-next-time">--:--</span> · <span id="autopost-remaining">3</span> remaining
+                </div>
+            </div>
+            <button class="btn btn-primary" id="autopost-post-btn" onclick="postEligibleNow()">
+                POST NOW
+            </button>
+        </div>
+    </div>
+
+    <!-- Manual Research Modal -->
+    <div class="modal-overlay" id="research-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>> QUICK_RESEARCH</span>
+                <button class="btn btn-sm" onclick="hideModal('research-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Topic/Keyword</label>
+                    <input type="text" id="research-topic" placeholder="e.g., Apple iPhone 16, OpenAI GPT-5">
+                    <div class="hint">Run a quick research cycle on this specific topic</div>
+                </div>
+                <div class="form-group">
+                    <label>Max Stories</label>
+                    <input type="number" id="research-max-stories" value="10" min="5" max="50">
+                    <div class="hint">Number of stories to gather</div>
+                </div>
+                <div class="form-group">
+                    <label>Max Proposals</label>
+                    <input type="number" id="research-max-proposals" value="5" min="1" max="20">
+                    <div class="hint">Number of tweets to generate</div>
+                </div>
+                <button class="btn btn-primary" onclick="runManualResearch()">RUN RESEARCH</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Archive Banner -->
     <div class="archive-banner" id="archive-banner" style="display: none;">
         <div class="archive-banner-content">
@@ -322,6 +367,96 @@
             fetchTweets();
             populateLabels();
             checkArchive();
+            checkAutopostStatus();
+        }
+
+        // ── Auto-Post Status ──
+        async function checkAutopostStatus() {
+            try {
+                const response = await fetch('/api/autopost/status', { credentials: 'include' });
+                const data = await response.json();
+                if (data.enabled) {
+                    const banner = document.getElementById('autopost-banner');
+                    document.getElementById('autopost-posted-today').textContent = data.posted_today;
+                    document.getElementById('autopost-max-posts').textContent = data.max_posts;
+                    document.getElementById('autopost-next-time').textContent = data.next_available || '--:--';
+                    document.getElementById('autopost-remaining').textContent = data.remaining;
+                    banner.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Autopost status check failed:', e);
+            }
+        }
+
+        async function postEligibleNow() {
+            const btn = document.getElementById('autopost-post-btn');
+            btn.disabled = true;
+            btn.textContent = 'POSTING...';
+            
+            try {
+                const response = await fetch('/api/autopost/post-eligible', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast(data.message || 'Posted successfully');
+                    checkAutopostStatus();
+                } else {
+                    const error = await response.json();
+                    showToast('Error: ' + (error.error || 'Failed to post'), true);
+                    btn.disabled = false;
+                    btn.textContent = 'POST NOW';
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, true);
+                btn.disabled = false;
+                btn.textContent = 'POST NOW';
+            }
+        }
+
+        // ── Manual Research ──
+        function showManualResearchModal() {
+            showModal('research-modal');
+        }
+
+        async function runManualResearch() {
+            const topic = document.getElementById('research-topic').value.trim();
+            const maxStories = document.getElementById('research-max-stories').value;
+            const maxProposals = document.getElementById('research-max-proposals').value;
+            
+            if (!topic) {
+                showToast('Please enter a topic/keyword', true);
+                return;
+            }
+            
+            hideModal('research-modal');
+            showToast('Running research for "' + topic + '"...');
+            
+            try {
+                const response = await fetch('/api/research/run', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: topic,
+                        max_stories: parseInt(maxStories),
+                        max_proposals: parseInt(maxProposals)
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast('Research complete: ' + (data.message || 'Check pipeline output'));
+                    fetchTweets();
+                } else {
+                    const error = await response.json();
+                    showToast('Error: ' + (error.error || 'Failed to run research'), true);
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, true);
+            }
         }
 
         // ── Archive Banner ──

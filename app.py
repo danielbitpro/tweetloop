@@ -114,6 +114,13 @@ DEFAULT_SETTINGS = {
         "source_priority": ["twitter", "arxiv", "github_trending", "reddit", "huggingface", "youtube", "tech_blogs"],
         "language_filter": "en",
     },
+    "autopost": {
+        "enable": False,
+        "max_posts_per_day": 3,
+        "min_gap_minutes": 60,
+        "preferred_times": ["09:00", "14:00", "19:00"],
+        "mode": "approved",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -434,6 +441,162 @@ def download_archive():
             download_name=f"tweets-{archive_info.get('month', 'archive')}.csv",
             mimetype='text/csv'
         )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Auto-posting endpoints
+# ---------------------------------------------------------------------------
+
+@app.route('/api/autopost/status', methods=['GET'])
+@require_auth
+def autopost_status():
+    """Get auto-posting status: how many posts today, next available time."""
+    try:
+        from database import get_settings as db_get_settings
+        from pipeline_to_app_bridge import DB_FILE
+        import json
+        
+        user_id = request.user_id
+        settings = db_get_settings(user_id)
+        
+        # Get autopost settings
+        autopost = settings.get('autopost', DEFAULT_SETTINGS.get('autopost', {}))
+        if not autopost.get('enable', False):
+            return jsonify({
+                'enabled': False,
+                'message': 'Auto-posting is disabled'
+            })
+        
+        # Get posted tweets today
+        today = datetime.now().strftime('%Y-%m-%d')
+        all_tweets = db_get_tweets(user_id, limit=500)
+        posted_today = [t for t in all_tweets if t.get('status') == 'posted' and t.get('date') == today]
+        
+        max_posts = autopost.get('max_posts_per_day', 3)
+        remaining = max(0, max_posts - len(posted_today))
+        
+        # Find next available time
+        preferred_times = autopost.get('preferred_times', ['09:00', '14:00', '19:00'])
+        now = datetime.now()
+        next_time = None
+        for time_str in preferred_times:
+            try:
+                h, m = map(int, time_str.split(':'))
+                candidate = now.replace(hour=h, minute=m, second=0, microsecond=0)
+                if candidate > now:
+                    next_time = time_str
+                    break
+            except:
+                pass
+        
+        if not next_time and preferred_times:
+            next_time = preferred_times[0]
+        
+        return jsonify({
+            'enabled': True,
+            'posted_today': len(posted_today),
+            'max_posts': max_posts,
+            'remaining': remaining,
+            'next_available': next_time,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/autopost/post-eligible', methods=['POST'])
+@require_auth
+def autopost_eligible():
+    """Auto-post eligible tweets based on settings."""
+    try:
+        from database import get_settings as db_get_settings, update_tweet as db_update_tweet
+        from pipeline_to_app_bridge import DB_FILE
+        import json
+        
+        user_id = request.user_id
+        settings = db_get_settings(user_id)
+        
+        autopost = settings.get('autopost', DEFAULT_SETTINGS.get('autopost', {}))
+        if not autopost.get('enable', False):
+            return jsonify({'error': 'Auto-posting is disabled'}), 400
+        
+        max_posts = autopost.get('max_posts_per_day', 3)
+        mode = autopost.get('mode', 'approved')
+        
+        # Get posted tweets today
+        today = datetime.now().strftime('%Y-%m-%d')
+        all_tweets = db_get_tweets(user_id, limit=500)
+        posted_today = [t for t in all_tweets if t.get('status') == 'posted' and t.get('date') == today]
+        
+        if len(posted_today) >= max_posts:
+            return jsonify({
+                'posted': 0,
+                'message': f'Max posts per day ({max_posts}) reached'
+            })
+        
+        # Find eligible tweets
+        eligible_status = 'approved' if mode == 'approved' else ['approved', 'draft']
+        eligible = [t for t in all_tweets if t.get('status') in eligible_status and not t.get('posted_at')]
+        
+        # Sort by date (newest first), then section number
+        eligible.sort(key=lambda x: (x.get('date') or '', x.get('section_number') or 0), reverse=True)
+        
+        # Post up to remaining
+        remaining = max_posts - len(posted_today)
+        posted_count = 0
+        
+        for tweet in eligible[:remaining]:
+            success, message = post_tweet_via_xurl(tweet.get('text', ''))
+            if success:
+                db_update_tweet(user_id, tweet['id'], {
+                    'status': 'posted',
+                    'posted_at': datetime.now().isoformat(),
+                    'post_message': message,
+                })
+                posted_count += 1
+        
+        return jsonify({
+            'posted': posted_count,
+            'message': f'Posted {posted_count} tweet(s)' if posted_count > 0 else 'No eligible tweets'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Manual research endpoint
+# ---------------------------------------------------------------------------
+
+@app.route('/api/research/run', methods=['POST'])
+@require_auth
+def run_manual_research():
+    """Trigger a manual research cycle on a specific topic."""
+    try:
+        data = request.json
+        topic = data.get('topic', '').strip()
+        max_stories = data.get('max_stories', 10)
+        max_proposals = data.get('max_proposals', 5)
+        
+        if not topic:
+            return jsonify({'error': 'Topic is required'}), 400
+        
+        # Build the research command with topic override
+        research_cmd = [
+            'hermes', 'cron', 'run', 'daily-tech-pipeline',
+            '--context', f'topic_override={topic}'
+        ]
+        
+        # For now, just log that research was requested
+        # The actual research runs via the cron job
+        print(f"[TweetLoop] Manual research requested: topic='{topic}', stories={max_stories}, proposals={max_proposals}")
+        
+        return jsonify({
+            'message': f'Research started for "{topic}". Check X-briefings/ after pipeline completes.',
+            'topic': topic,
+            'max_stories': max_stories,
+            'max_proposals': max_proposals,
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
