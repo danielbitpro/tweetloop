@@ -115,14 +115,13 @@ DEFAULT_SETTINGS = {
 }
 
 # ---------------------------------------------------------------------------
-# Startup: migrate existing JSON data to database (once)
+# Startup: migrate existing JSON data to database (once, at import time)
 # ---------------------------------------------------------------------------
 
 _migrated = False
 
-@app.before_request
-def _migrate_on_startup():
-    """Migrate JSON files to database on first startup only."""
+def _do_migration():
+    """Migrate JSON files to database once at startup."""
     global _migrated
     if _migrated:
         return
@@ -139,10 +138,18 @@ def _migrate_on_startup():
         
         if migrated_tweets or migrated_settings:
             print(f"[TweetLoop] Migrated {migrated_tweets} tweets, {migrated_settings} settings to database")
-        _migrated = True
     except Exception as e:
         print(f"[TweetLoop] Migration error: {e}")
+    finally:
         _migrated = True
+
+# Run migration at import time (before server starts)
+_do_migration()
+
+@app.before_request
+def _skip_migration():
+    """Migration already done at import time — no-op."""
+    pass
 
 
 # ---------------------------------------------------------------------------

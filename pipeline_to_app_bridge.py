@@ -13,6 +13,54 @@ import hashlib
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from difflib import SequenceMatcher
+
+
+# ---------------------------------------------------------------------------
+# Deduplication helpers
+# ---------------------------------------------------------------------------
+
+def similarity_score(text1, text2):
+    """Calculate similarity between two texts (0.0 to 1.0).
+    
+    Uses SequenceMatcher for character-level similarity.
+    Returns a score where 1.0 = identical, 0.0 = completely different.
+    """
+    if not text1 or not text2:
+        return 0.0
+    return SequenceMatcher(None, text1.lower().strip(), text2.lower().strip()).ratio()
+
+
+def is_duplicate(new_tweet, existing_tweets, threshold=0.85):
+    """Check if a new tweet is a duplicate of any existing tweet.
+    
+    Args:
+        new_tweet: dict with 'text' key
+        existing_tweets: list of existing tweet dicts
+        threshold: similarity threshold (0.0-1.0), default 0.85
+    
+    Returns:
+        (is_dup, matched_tweet, score) tuple
+    """
+    new_text = new_tweet.get('text', '').strip()
+    if not new_text:
+        return False, None, 0.0
+    
+    for existing in existing_tweets:
+        existing_text = existing.get('text', '').strip()
+        if not existing_text:
+            continue
+        
+        score = similarity_score(new_text, existing_text)
+        if score >= threshold:
+            return True, existing, score
+    
+    return False, None, 0.0
+
+
+# ---------------------------------------------------------------------------
+# Bridge logic
+# ---------------------------------------------------------------------------
 
 # Paths - configurable via environment variables
 WORKSPACE = Path(os.environ.get("TLP_WORKSPACE", Path.home() / "workspace"))
@@ -212,31 +260,55 @@ def bridge():
     existing_keys = {t['text'] for t in app_tweets}
 
     new_count = 0
+    duplicate_count = 0
+    skipped_exact = 0
+
     for tweet_data in pipeline_tweets:
         text = tweet_data['text']
-        if text not in existing_keys:
-            app_tweets.append({
-                'id': generate_id(text, today),
-                'user_id': '00000000-0000-0000-0000-000000000001',
-                'text': text,
-                'label': tweet_data.get('label'),
-                'hashtags': tweet_data.get('hashtags', ''),
-                'why_it_works': tweet_data.get('why_it_works'),
-                'section_number': tweet_data.get('section_number'),
-                'source_url': tweet_data.get('source_url'),
-                'status': 'draft',
-                'date': today,
-                'schedule_time': None,
-                'source': 'pipeline',
-            })
-            new_count += 1
+        
+        # Check 1: Exact text match
+        if text in existing_keys:
+            skipped_exact += 1
+            continue
+        
+        # Check 2: Similarity-based deduplication
+        tweet_dict = {
+            'id': generate_id(text, today),
+            'user_id': '00000000-0000-0000-0000-000000000001',
+            'text': text,
+            'label': tweet_data.get('label'),
+            'hashtags': tweet_data.get('hashtags', ''),
+            'why_it_works': tweet_data.get('why_it_works'),
+            'section_number': tweet_data.get('section_number'),
+            'source_url': tweet_data.get('source_url'),
+            'status': 'draft',
+            'date': today,
+            'schedule_time': None,
+            'source': 'pipeline',
+        }
+        
+        is_dup, matched_tweet, score = is_duplicate(tweet_dict, app_tweets, threshold=0.85)
+        if is_dup:
+            duplicate_count += 1
+            matched_date = matched_tweet.get('date', 'unknown')
+            matched_id = matched_tweet.get('id', 'unknown')[:8]
+            print(f"  ⚠ DUPLICATE (score: {score:.2f}): '{text[:60]}...' matches existing tweet #{matched_id} ({matched_date})")
+            continue
+        
+        app_tweets.append(tweet_dict)
+        existing_keys.add(text)
+        new_count += 1
 
     if new_count > 0:
         save_tweets(app_tweets)
-        print(f"Added {new_count} new tweets to the app.")
-        print(f"Total tweets in app: {len(app_tweets)}")
+        print(f"✓ Added {new_count} new tweets to the app.")
+        print(f"  - Exact duplicates skipped: {skipped_exact}")
+        print(f"  - Similar duplicates skipped: {duplicate_count}")
+        print(f"  Total tweets in app: {len(app_tweets)}")
     else:
         print("All pipeline tweets already exist in the app.")
+        print(f"  - Exact duplicates: {skipped_exact}")
+        print(f"  - Similar duplicates: {duplicate_count}")
 
 
 if __name__ == '__main__':
