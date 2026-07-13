@@ -363,9 +363,15 @@ def health():
 # ---------------------------------------------------------------------------
 
 @app.route('/favicon.svg')
-def favicon():
+def favicon_svg():
     from flask import send_from_directory
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.svg', mimetype='image/svg+xml')
+
+
+@app.route('/favicon.png')
+def favicon_png():
+    from flask import send_from_directory
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.png', mimetype='image/png')
 
 
 # ---------------------------------------------------------------------------
