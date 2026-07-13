@@ -227,6 +227,22 @@
     <!-- Action Toast -->
     <div class="action-toast" id="action-toast"></div>
 
+    <!-- Archive Banner -->
+    <div class="archive-banner" id="archive-banner" style="display: none;">
+        <div class="archive-banner-content">
+            <div class="archive-banner-icon">📦</div>
+            <div class="archive-banner-text">
+                <div class="archive-banner-title">Monthly archive available</div>
+                <div class="archive-banner-desc" id="archive-banner-desc">
+                    <span id="archive-count">0</span> tweets older than <span id="archive-cutoff">30</span> days are ready for purge.
+                </div>
+            </div>
+            <button class="btn btn-primary" id="archive-download-btn" onclick="downloadAndPurgeArchive()">
+                DOWNLOAD AND PURGE
+            </button>
+        </div>
+    </div>
+
     <script>
         // ── Dynamic emoji picker creation: build them in JS so cached HTML doesn't matter ──
         (function createEmojiPickers() {
@@ -305,6 +321,62 @@
         function init() {
             fetchTweets();
             populateLabels();
+            checkArchive();
+        }
+
+        // ── Archive Banner ──
+        async function checkArchive() {
+            try {
+                const response = await fetch('/api/archive/check', { credentials: 'include' });
+                const data = await response.json();
+                if (data.ready) {
+                    const banner = document.getElementById('archive-banner');
+                    document.getElementById('archive-count').textContent = data.count;
+                    document.getElementById('archive-cutoff').textContent = data.cutoff_date;
+                    banner.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Archive check failed:', e);
+            }
+        }
+
+        async function downloadAndPurgeArchive() {
+            const btn = document.getElementById('archive-download-btn');
+            btn.disabled = true;
+            btn.textContent = 'PROCESSING...';
+            
+            try {
+                const response = await fetch('/api/archive/download', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    // Download the file
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = response.headers.get('content-disposition')?.split('filename=')[1] || 'archive.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    // Hide banner
+                    document.getElementById('archive-banner').style.display = 'none';
+                    showToast('Archive downloaded and purged successfully');
+                } else {
+                    const error = await response.json();
+                    showToast('Error: ' + (error.error || 'Failed to download archive'), true);
+                    btn.disabled = false;
+                    btn.textContent = 'DOWNLOAD AND PURGE';
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, true);
+                btn.disabled = false;
+                btn.textContent = 'DOWNLOAD AND PURGE';
+            }
         }
 
         async function fetchTweets() {

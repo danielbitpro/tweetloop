@@ -10,13 +10,13 @@ Database:
   - SQLite fallback (when SUPABASE_URL is NOT set)
 """
 
+import csv
 import json
 import os
 import subprocess
 import uuid
 from datetime import datetime
-
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_file
 
 from database import (
     SUPABASE_URL,
@@ -83,6 +83,8 @@ DEFAULT_SETTINGS = {
         "keywords": [],
         "language": "en",
         "research_days": 1,
+        "min_history": 30,
+        "enable_archive": False,
         "manual_url_check": False,
         "manual_urls": [],
         "reddit_subreddits": ["LocalLLaMA", "LocalLLM", "opensourceAI", "MachineLearning"],
@@ -362,6 +364,78 @@ def reset_settings():
     for key in DEFAULT_SETTINGS:
         delete("settings", filters={"user_id": user_id, "key": key})
     return jsonify(dict(DEFAULT_SETTINGS))
+
+
+# ---------------------------------------------------------------------------
+# Archive endpoints
+# ---------------------------------------------------------------------------
+
+@app.route('/api/archive/check', methods=['GET'])
+@require_auth
+def check_archive():
+    """Check if an archive is ready for download."""
+    try:
+        from pipeline_to_app_bridge import check_archive_ready
+        archive_info = check_archive_ready()
+        if archive_info:
+            return jsonify({
+                'ready': True,
+                'month': archive_info.get('month', ''),
+                'count': archive_info.get('count', 0),
+                'cutoff_date': archive_info.get('cutoff_date', ''),
+            })
+        else:
+            return jsonify({'ready': False})
+    except Exception as e:
+        return jsonify({'ready': False, 'error': str(e)}), 500
+
+
+@app.route('/api/archive/download', methods=['POST'])
+@require_auth
+def download_archive():
+    """Download archive CSV and purge old tweets."""
+    try:
+        from pipeline_to_app_bridge import (
+            check_archive_ready,
+            purge_old_tweets,
+            remove_archive,
+            DB_FILE,
+        )
+        import csv
+        import os
+        from pathlib import Path
+        
+        archive_info = check_archive_ready()
+        if not archive_info:
+            return jsonify({'error': 'No archive available'}), 404
+        
+        archive_file = Path(archive_info.get('file', ''))
+        if not archive_file.exists():
+            return jsonify({'error': 'Archive file not found'}), 404
+        
+        # Get min_history for purge
+        settings_file = DB_FILE.parent / "settings.json"
+        min_history = 30
+        if settings_file.exists():
+            with open(settings_file) as f:
+                settings = json.load(f)
+                min_history = settings.get('research', {}).get('min_history', 30)
+        
+        # Purge old tweets
+        purged_count = purge_old_tweets(min_history=min_history)
+        
+        # Remove archive flag
+        remove_archive()
+        
+        # Send file
+        return send_file(
+            str(archive_file),
+            as_attachment=True,
+            download_name=f"tweets-{archive_info.get('month', 'archive')}.csv",
+            mimetype='text/csv'
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ---------------------------------------------------------------------------

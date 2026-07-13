@@ -503,6 +503,57 @@
             text-decoration: underline;
         }
 
+        /* Archive Banner */
+        .archive-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--accent-orange);
+            padding: 12px 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(255, 136, 0, 0.2);
+        }
+
+        .archive-banner-content {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .archive-banner-icon {
+            font-size: 24px;
+        }
+
+        .archive-banner-text {
+            flex: 1;
+        }
+
+        .archive-banner-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-orange);
+            margin-bottom: 4px;
+        }
+
+        .archive-banner-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .archive-banner-desc #archive-count {
+            color: var(--accent-orange);
+            font-weight: 600;
+        }
+
+        .archive-banner-desc #archive-cutoff {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
         .tweet-actions {
             display: flex;
             gap: 6px;

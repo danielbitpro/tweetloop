@@ -296,6 +296,15 @@
                 <div class="hint">How many days back to search for stories (1–365). Default: 1 day</div>
             </div>
             <div class="form-group">
+                <label>Minimum History (Days)</label>
+                <input type="number" id="setting-min-history" value="30" min="1" max="365">
+                <div class="hint">Tweets must be at least this old before they're eligible for purge. 30-day hard minimum enforced.</div>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="setting-enable-archive">
+                <label for="setting-enable-archive">Enable monthly archive</label>
+            </div>
+            <div class="form-group">
                 <label>Max Stories to Research (Total)</label>
                 <input type="number" id="setting-max-stories" value="15" min="5" max="50">
                 <div class="hint">Total stories the researcher will gather from all sources combined.</div>
@@ -575,6 +584,8 @@ https://example.com/blog/..."></textarea>
                 document.getElementById('setting-keywords').value = (settings.research?.keywords || []).join(', ');
                 document.getElementById('setting-language').value = settings.research?.language || 'en';
                 document.getElementById('setting-research-days').value = settings.research?.research_days || 1;
+                document.getElementById('setting-min-history').value = settings.research?.min_history || 30;
+                document.getElementById('setting-enable-archive').checked = settings.research?.enable_archive ?? false;
                 document.getElementById('setting-reddit-subs').value = (settings.research?.reddit_subreddits || ['LocalLLaMA', 'LocalLLM', 'opensourceAI', 'MachineLearning']).join(', ');
                 document.getElementById('setting-max-stories').value = settings.research?.max_stories ?? 15;
                 document.getElementById('setting-manual-url-check').checked = settings.research?.manual_url_check ?? false;
@@ -658,6 +669,8 @@ https://example.com/blog/..."></textarea>
                     keywords: document.getElementById('setting-keywords').value.split(',').map(k => k.trim()).filter(k => k),
                     language: document.getElementById('setting-language').value,
                     research_days: parseInt(document.getElementById('setting-research-days').value) || 1,
+                    min_history: parseInt(document.getElementById('setting-min-history').value) || 30,
+                    enable_archive: document.getElementById('setting-enable-archive').checked,
                     max_stories: parseInt(document.getElementById('setting-max-stories').value) || 15,
                     manual_url_check: document.getElementById('setting-manual-url-check').checked,
                     manual_urls: document.getElementById('setting-manual-urls').value.split('\n').map(u => u.trim()).filter(u => u && u.startsWith('http')),

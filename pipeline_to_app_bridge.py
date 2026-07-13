@@ -6,12 +6,13 @@ Reads the verified tweets from the X-proposed-tweets pipeline output
 and updates the TweetLoop app's SQLite database.
 """
 
+import csv
 import json
 import os
 import re
 import hashlib
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from difflib import SequenceMatcher
 
@@ -239,8 +240,147 @@ def generate_id(text, date):
     return hashlib.md5((text + date).encode()).hexdigest()[:8]
 
 
+# ---------------------------------------------------------------------------
+# Archive generation
+# ---------------------------------------------------------------------------
+
+ARCHIVE_DIR = DB_FILE.parent / "archives"
+
+
+def generate_archive(today=None, min_history=30, enable_archive=False):
+    """Generate monthly archive of tweets older than min_history days.
+    
+    Only runs if enable_archive is True and it's the 1st of the month.
+    Creates a CSV file with all tweets eligible for purge.
+    Returns archive info dict or None if no archive generated.
+    """
+    if not enable_archive:
+        return None
+    
+    if today is None:
+        today = datetime.now()
+    elif isinstance(today, str):
+        today = datetime.strptime(today, "%Y-%m-%d")
+    
+    # Only run on 1st of month
+    if today.day != 1:
+        return None
+    
+    cutoff_date = today - timedelta(days=min_history)
+    cutoff_str = cutoff_date.strftime("%Y-%m-%d")
+    
+    # Load all tweets
+    all_tweets = load_tweets()
+    if not all_tweets:
+        return None
+    
+    # Find tweets older than cutoff
+    old_tweets = [t for t in all_tweets if t.get('date') and t['date'] < cutoff_str]
+    if not old_tweets:
+        return None
+    
+    # Create archive directory
+    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Generate CSV
+    month_str = today.strftime("%Y-%m")
+    archive_file = ARCHIVE_DIR / f"tweets-{month_str}.csv"
+    
+    csv_fields = ['id', 'text', 'label', 'hashtags', 'why_it_works', 'source_url', 'status', 'date', 'schedule_time', 'source']
+    
+    with open(archive_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=csv_fields, extrasaction='ignore')
+        writer.writeheader()
+        for tweet in old_tweets:
+            row = {field: tweet.get(field, '') for field in csv_fields}
+            writer.writerow(row)
+    
+    # Create ready flag
+    flag_file = ARCHIVE_DIR / "ready"
+    flag_data = {
+        "date": today.strftime("%Y-%m-%d"),
+        "month": month_str,
+        "count": len(old_tweets),
+        "cutoff_date": cutoff_str,
+        "file": str(archive_file),
+    }
+    with open(flag_file, 'w') as f:
+        json.dump(flag_data, f)
+    
+    print(f"📦 Archive generated: {archive_file}")
+    print(f"  - {len(old_tweets)} tweets older than {min_history} days")
+    print(f"  - Cutoff date: {cutoff_str}")
+    
+    return flag_data
+
+
+def purge_old_tweets(min_history=30):
+    """Purge tweets older than min_history days from the database.
+    
+    Returns count of purged tweets.
+    """
+    cutoff_date = datetime.now() - timedelta(days=min_history)
+    cutoff_str = cutoff_date.strftime("%Y-%m-%d")
+    
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    
+    # Get count of tweets to purge
+    c.execute('SELECT COUNT(*) FROM tweets WHERE date < ?', (cutoff_str,))
+    count_to_purge = c.fetchone()[0]
+    
+    if count_to_purge > 0:
+        c.execute('DELETE FROM tweets WHERE date < ?', (cutoff_str,))
+        conn.commit()
+        print(f"🗑️ Purged {count_to_purge} tweets older than {min_history} days")
+    
+    conn.close()
+    return count_to_purge
+
+
+def check_archive_ready():
+    """Check if an archive is ready for download.
+    
+    Returns archive info dict or None.
+    """
+    flag_file = ARCHIVE_DIR / "ready"
+    if not flag_file.exists():
+        return None
+    
+    with open(flag_file) as f:
+        return json.load(f)
+
+
+def remove_archive():
+    """Remove the archive ready flag."""
+    flag_file = ARCHIVE_DIR / "ready"
+    if flag_file.exists():
+        flag_file.unlink()
+        return True
+    return False
+
+
 def bridge():
     today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Step 1: Generate archive if needed (runs on 1st of month)
+    try:
+        settings_file = DB_FILE.parent / "settings.json"
+        enable_archive = False
+        min_history = 30
+        if settings_file.exists():
+            with open(settings_file) as f:
+                settings = json.load(f)
+                enable_archive = settings.get('research', {}).get('enable_archive', False)
+                min_history = settings.get('research', {}).get('min_history', 30)
+        
+        archive_info = generate_archive(today=today, min_history=min_history, enable_archive=enable_archive)
+        if archive_info:
+            print(f"📦 Archive ready: {archive_info['count']} tweets older than {min_history} days")
+    except Exception as e:
+        print(f"[Archive] Error: {e}")
+    
+    # Step 2: Process pipeline tweets
     final_file = X_PROPOSED_DIR / f"{today}-final.md"
 
     if not final_file.exists():
