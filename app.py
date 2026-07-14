@@ -13,6 +13,7 @@ Database:
 import csv
 import json
 import os
+import sqlite3
 import subprocess
 import uuid
 from datetime import datetime
@@ -651,6 +652,160 @@ def web_manifest():
 
 
 # ---------------------------------------------------------------------------
+# Auto-posting scheduler (in-process, survives restarts)
+# ---------------------------------------------------------------------------
+
+_scheduler = None
+_scheduler_active = False
+
+
+def _get_scheduler():
+    """Get or create the APScheduler instance."""
+    global _scheduler
+    if _scheduler is None:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        _scheduler = BackgroundScheduler()
+    return _scheduler
+
+
+def _autopost_job():
+    """Background job that calls the auto-posting logic directly."""
+    try:
+        # Import inside the job to avoid circular imports at startup
+        from database import get_settings as db_get_settings
+        from pipeline_to_app_bridge import DB_FILE
+        import json
+
+        # Load user settings
+        settings_file = DB_FILE.parent / "settings.json"
+        if not settings_file.exists():
+            return
+
+        with open(settings_file) as f:
+            settings = json.load(f)
+
+        autopost = settings.get('autopost', DEFAULT_SETTINGS.get('autopost', {}))
+        if not autopost.get('enable', False):
+            return
+
+        # Check rate limits
+        today = datetime.now().strftime('%Y-%m-%d')
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute(
+            "SELECT COUNT(*) as cnt FROM tweets WHERE status = ? AND date = ?",
+            ('posted', today)
+        )
+        posted_today = c.fetchone()['cnt']
+        conn.close()
+
+        max_posts = autopost.get('max_posts_per_day', 3)
+        if posted_today >= max_posts:
+            return
+
+        # Check min gap between posts
+        min_gap = autopost.get('min_gap_minutes', 60)
+        if posted_today > 0:
+            conn = sqlite3.connect(str(DB_FILE))
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+            c.execute(
+                "SELECT MAX(posted_at) as last_post FROM tweets WHERE status = ? AND date = ? AND posted_at IS NOT NULL",
+                ('posted', today)
+            )
+            row = c.fetchone()
+            conn.close()
+            if row['last_post']:
+                last_post = datetime.fromisoformat(row['last_post'])
+                gap = (datetime.now() - last_post).total_seconds() / 60
+                if gap < min_gap:
+                    return
+
+        # Find eligible tweets
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        mode = autopost.get('mode', 'approved')
+        if mode == 'approved':
+            c.execute(
+                "SELECT * FROM tweets WHERE status = 'approved' AND posted_at IS NULL ORDER BY date DESC, section_number DESC LIMIT ?",
+                (max_posts - posted_today,)
+            )
+        else:
+            c.execute(
+                "SELECT * FROM tweets WHERE status IN ('approved', 'draft') AND posted_at IS NULL ORDER BY date DESC, section_number DESC LIMIT ?",
+                (max_posts - posted_today,)
+            )
+        eligible = [dict(row) for row in c.fetchall()]
+        conn.close()
+
+        if not eligible:
+            return
+
+        # Post tweets
+        posted_count = 0
+        for tweet in eligible:
+            text = tweet.get('text', '').strip()
+            if not text:
+                continue
+            success, message = post_tweet_via_xurl(text)
+            if success:
+                conn = sqlite3.connect(str(DB_FILE))
+                c = conn.cursor()
+                c.execute(
+                    "UPDATE tweets SET status = ?, posted_at = ?, post_message = ? WHERE id = ?",
+                    ('posted', datetime.now().isoformat(), message, tweet['id'])
+                )
+                conn.commit()
+                conn.close()
+                posted_count += 1
+            else:
+                print(f"[TweetLoop] Auto-post failed: {message}")
+
+        if posted_count > 0:
+            print(f"[TweetLoop] Auto-posted {posted_count} tweet(s)")
+    except Exception as e:
+        print(f"[TweetLoop] Scheduler job error: {e}")
+
+
+def start_scheduler():
+    """Start the auto-posting scheduler if enabled."""
+    global _scheduler_active
+    from pipeline_to_app_bridge import DB_FILE
+    settings_file = DB_FILE.parent / "settings.json"
+    if settings_file.exists():
+        with open(settings_file) as f:
+            settings = json.load(f)
+        if settings.get('autopost', {}).get('enable', False):
+            stop_scheduler()
+            sched = _get_scheduler()
+            preferred_times = settings.get('autopost', {}).get('preferred_times', ['09:00', '14:00', '19:00'])
+            for time_str in preferred_times:
+                try:
+                    h, m = map(int, time_str.split(':'))
+                    sched.add_job(_autopost_job, 'cron', hour=h, minute=m, id=f'autopost_{h}_{m}')
+                except:
+                    pass
+            # Also add an hourly fallback check
+            sched.add_job(_autopost_job, 'interval', hours=1, id='autopost_hourly')
+            if not sched.running:
+                sched.start()
+            _scheduler_active = True
+            print("[TweetLoop] Auto-posting scheduler started")
+
+
+def stop_scheduler():
+    """Stop the auto-posting scheduler."""
+    global _scheduler
+    if _scheduler and _scheduler.running:
+        _scheduler.shutdown(wait=False)
+    _scheduler = None
+    _scheduler_active = False
+    print("[TweetLoop] Auto-posting scheduler stopped")
+
+
+# ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
 
@@ -661,12 +816,34 @@ def add_cache_headers(response):
     response.headers['Expires'] = '0'
     return response
 
+
+@app.route('/api/autopost/scheduler/status', methods=['GET'])
+@require_auth
+def scheduler_status():
+    """Get scheduler status for the frontend."""
+    try:
+        from database import get_settings as db_get_settings
+        settings = db_get_settings(request.user_id)
+        autopost = settings.get('autopost', DEFAULT_SETTINGS.get('autopost', {}))
+        enabled = autopost.get('enable', False)
+        return jsonify({
+            'enabled': enabled,
+            'running': _scheduler_active,
+            'message': 'Auto-posting is active' if enabled and _scheduler_active else 'Auto-posting is disabled',
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 7777))
     CERT_DIR = os.path.join(os.path.dirname(__file__), 'certs')
     CERT_FILE = os.path.join(CERT_DIR, 'cert.pem')
     KEY_FILE = os.path.join(CERT_DIR, 'key.pem')
-    
+
+    # Start scheduler if auto-posting is enabled
+    start_scheduler()
+
     if os.path.exists(CERT_FILE) and os.path.exists(KEY_FILE):
         print(f"[TweetLoop] Starting HTTPS on port {PORT}")
         app.run(host='0.0.0.0', port=PORT, debug=False, ssl_context=(CERT_FILE, KEY_FILE))
