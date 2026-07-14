@@ -672,6 +672,15 @@ def _get_scheduler():
     return _scheduler
 
 
+def _jittered_time(base_hour, base_min, jitter_minutes):
+    """Apply random jitter to a base time. Returns (hour, min)."""
+    import random
+    offset = random.randint(-jitter_minutes, jitter_minutes)
+    total_min = base_hour * 60 + base_min + offset
+    total_min = max(0, min(1439, total_min))  # clamp to 00:00-23:59
+    return total_min // 60, total_min % 60
+
+
 def _autopost_job():
     """Background job that calls the auto-posting logic directly."""
     try:
@@ -731,15 +740,17 @@ def _autopost_job():
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         mode = autopost.get('mode', 'approved')
+        posts_per_run = autopost.get('posts_per_run', 1)
+        remaining = min(posts_per_run, max_posts - posted_today)
         if mode == 'approved':
             c.execute(
                 "SELECT * FROM tweets WHERE status = 'approved' AND posted_at IS NULL ORDER BY date DESC, section_number DESC LIMIT ?",
-                (max_posts - posted_today,)
+                (remaining,)
             )
         else:
             c.execute(
                 "SELECT * FROM tweets WHERE status IN ('approved', 'draft') AND posted_at IS NULL ORDER BY date DESC, section_number DESC LIMIT ?",
-                (max_posts - posted_today,)
+                (remaining,)
             )
         eligible = [dict(row) for row in c.fetchall()]
         conn.close()
@@ -774,29 +785,53 @@ def _autopost_job():
 
 
 def start_scheduler():
-    """Start the auto-posting scheduler if enabled."""
+    """Start the auto-posting scheduler if enabled.
+
+    At startup, calculates jittered times from settings and schedules jobs.
+    Settings are re-read on each job run so changes take effect immediately.
+    """
     global _scheduler_active
     from pipeline_to_app_bridge import DB_FILE
+    import random
+
     settings_file = DB_FILE.parent / "settings.json"
-    if settings_file.exists():
-        with open(settings_file) as f:
-            settings = json.load(f)
-        if settings.get('autopost', {}).get('enable', False):
-            stop_scheduler()
-            sched = _get_scheduler()
-            preferred_times = settings.get('autopost', {}).get('preferred_times', ['09:00', '14:00', '19:00'])
-            for time_str in preferred_times:
-                try:
-                    h, m = map(int, time_str.split(':'))
-                    sched.add_job(_autopost_job, 'cron', hour=h, minute=m, id=f'autopost_{h}_{m}')
-                except:
-                    pass
-            # Also add an hourly fallback check
-            sched.add_job(_autopost_job, 'interval', hours=1, id='autopost_hourly')
-            if not sched.running:
-                sched.start()
-            _scheduler_active = True
-            print("[TweetLoop] Auto-posting scheduler started")
+    if not settings_file.exists():
+        return
+
+    with open(settings_file) as f:
+        settings = json.load(f)
+
+    autopost = settings.get('autopost', {})
+    if not autopost.get('enable', False):
+        return
+
+    stop_scheduler()
+    sched = _get_scheduler()
+
+    # Preferred times with jitter
+    preferred_times = autopost.get('preferred_times', ['09:00', '14:00', '19:00'])
+    time_jitter = autopost.get('time_jitter', 15)
+    for time_str in preferred_times:
+        try:
+            h, m = map(int, time_str.split(':'))
+            jh, jm = _jittered_time(h, m, time_jitter)
+            sched.add_job(_autopost_job, 'cron', hour=jh, minute=jm,
+                          id=f'autopost_{h}_{m}')
+        except:
+            pass
+
+    # Fallback check with jittered interval
+    fallback_interval = autopost.get('fallback_interval', 60)
+    fallback_jitter = autopost.get('fallback_jitter', 10)
+    # Add jitter to the interval itself so it's not exactly every N minutes
+    effective_interval = max(15, fallback_interval + random.randint(-fallback_jitter, fallback_jitter))
+    sched.add_job(_autopost_job, 'interval', minutes=effective_interval,
+                  id='autopost_fallback')
+
+    if not sched.running:
+        sched.start()
+    _scheduler_active = True
+    print(f"[TweetLoop] Auto-posting scheduler started (jitter={time_jitter}min preferred, {fallback_jitter}min fallback, interval={effective_interval}min)")
 
 
 def stop_scheduler():
