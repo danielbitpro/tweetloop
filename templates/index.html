@@ -783,7 +783,7 @@
                     ${whyHtml}
 
                     <div class="tweet-meta">
-                        <span>${hashtagsHtml} ${tweet.schedule_time ? 'SCHEDULE: ' + formatDate(tweet.schedule_time) : ''} | ${tweet.source || 'manual'}${tweet.source_url ? ' <a href="' + escapeHtml(tweet.source_url) + '" target="_blank" rel="noopener" class="tweet-source-link">[SOURCE]</a>' : ''}</span>
+                        <span>${hashtagsHtml ? hashtagsHtml + ' | ' : ''}${tweet.schedule_time ? 'SCHEDULE: ' + formatDate(tweet.schedule_time) : ''}${tweet.schedule_time && hashtagsHtml ? ' | ' : ''}${tweet.source || 'manual'}${tweet.source_url ? ' <a href="' + escapeHtml(tweet.source_url) + '" target="_blank" rel="noopener" class="tweet-source-link">[SOURCE]</a>' : ''}</span>
                     </div>
 
                     <div class="tweet-actions-right">
