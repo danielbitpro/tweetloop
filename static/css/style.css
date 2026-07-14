@@ -128,8 +128,8 @@ body::before {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
     height: auto;
+    line-height: 1.2;
 }
 
 .btn:hover {
@@ -298,7 +298,7 @@ body::before {
 
 .date-tweets.collapsed { max-height: 0 !important; }
 
-/* Tweet Card - FIXED: uses flexbox to push action buttons to bottom */
+/* Tweet Card - FIXED: flexbox to push buttons to bottom */
 .tweet-card {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
@@ -396,7 +396,7 @@ body::before {
     font-family: var(--font-mono);
     font-size: 13px;
     line-height: 1.6;
-    padding: 12px 12px;
+    padding: 12px;
     white-space: pre-wrap;
     word-break: break-word;
     max-height: 300px;
@@ -475,7 +475,7 @@ body::before {
     box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
 }
 
-/* Why it works annotation - FIXED: consistent padding */
+/* Why it works annotation - FIXED: same padding as tweet text */
 .tweet-why {
     font-size: 11px;
     color: var(--text-muted);
@@ -514,7 +514,7 @@ body::before {
     text-decoration: underline;
 }
 
-/* Tweet actions in footer row - FIXED: flexbox to push to bottom */
+/* Tweet actions in footer row - FIXED: push to bottom with margin-top: auto */
 .tweet-actions-right {
     display: flex;
     gap: 8px;
@@ -522,7 +522,7 @@ body::before {
     background: var(--bg-secondary);
     border-top: 1px solid var(--border-color);
     flex-wrap: wrap;
-    margin-top: auto; /* Pushes buttons to bottom of card */
+    margin-top: auto;
 }
 
 .tweet-actions-right .btn {
@@ -766,7 +766,7 @@ body::before {
     color: var(--text-primary);
 }
 
-/* Search & Filter Bar - FIXED: consistent alignment */
+/* Search & Filter Bar - FIXED: consistent height */
 .search-bar {
     display: flex;
     gap: 12px;
@@ -806,7 +806,7 @@ body::before {
     font-size: 12px;
     cursor: pointer;
     min-width: 140px;
-    height: 40px; /* Fixed height for alignment */
+    height: 40px;
     display: flex;
     align-items: center;
 }
