@@ -381,6 +381,65 @@ def reset_settings():
 
 
 # ---------------------------------------------------------------------------
+# Media upload endpoints
+# ---------------------------------------------------------------------------
+
+@app.route('/api/media/upload', methods=['POST'])
+@require_auth
+def upload_media():
+    """Upload an image file and return its URL."""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Validate file type
+        allowed_types = {'image/png', 'image/jpeg', 'image/gif', 'image/webp'}
+        if file.content_type not in allowed_types:
+            return jsonify({'error': 'Invalid file type. Allowed: PNG, JPEG, GIF, WebP'}), 400
+        
+        # Validate file size (max 5MB)
+        file.seek(0, 2)  # Seek to end
+        size = file.tell()
+        file.seek(0)  # Reset
+        if size > 5 * 1024 * 1024:
+            return jsonify({'error': 'File too large. Max 5MB'}), 400
+        
+        # Create media directory
+        media_dir = os.path.join(os.path.dirname(__file__), 'data', 'media')
+        os.makedirs(media_dir, exist_ok=True)
+        
+        # Generate unique filename
+        ext = os.path.splitext(file.filename)[1] or '.png'
+        filename = f"{uuid.uuid4().hex}{ext}"
+        filepath = os.path.join(media_dir, filename)
+        
+        # Save file
+        file.save(filepath)
+        
+        # Return URL
+        url = f"/api/media/{filename}"
+        return jsonify({'url': url, 'filename': filename})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/media/<filename>', methods=['GET'])
+def serve_media(filename):
+    """Serve an uploaded image."""
+    media_dir = os.path.join(os.path.dirname(__file__), 'data', 'media')
+    filepath = os.path.join(media_dir, filename)
+    
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'File not found'}), 404
+    
+    return send_file(filepath)
+
+
+# ---------------------------------------------------------------------------
 # Archive endpoints
 # ---------------------------------------------------------------------------
 
@@ -682,9 +741,13 @@ def _jittered_time(base_hour, base_min, jitter_minutes):
 
 
 def _autopost_job():
-    """Background job that calls the auto-posting logic directly."""
+    """Background job that calls the auto-posting logic directly.
+
+    Priority order:
+    1. Tweets with specific schedule_time that has arrived (respects user's chosen time)
+    2. Approved tweets (general autopost pool)
+    """
     try:
-        # Import inside the job to avoid circular imports at startup
         from database import get_settings as db_get_settings
         from pipeline_to_app_bridge import DB_FILE
         import json
@@ -735,25 +798,55 @@ def _autopost_job():
                 if gap < min_gap:
                     return
 
-        # Find eligible tweets
+        now = datetime.now()
+        eligible = []
+        mode = autopost.get('mode', 'approved')
+
+        # Priority 1: Tweets with specific schedule_time that has arrived
+        # These respect the user's chosen time - posted at exactly when they scheduled
         conn = sqlite3.connect(str(DB_FILE))
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        mode = autopost.get('mode', 'approved')
-        posts_per_run = autopost.get('posts_per_run', 1)
-        remaining = min(posts_per_run, max_posts - posted_today)
         if mode == 'approved':
             c.execute(
-                "SELECT * FROM tweets WHERE status = 'approved' AND posted_at IS NULL ORDER BY date DESC, section_number DESC LIMIT ?",
-                (remaining,)
+                """SELECT * FROM tweets WHERE status = 'approved' AND posted_at IS NULL
+                   AND schedule_time IS NOT NULL AND schedule_time != ''
+                   AND schedule_time <= ?
+                   ORDER BY schedule_time ASC LIMIT ?""",
+                (now.isoformat(), max_posts - posted_today)
             )
         else:
             c.execute(
-                "SELECT * FROM tweets WHERE status IN ('approved', 'draft') AND posted_at IS NULL ORDER BY date DESC, section_number DESC LIMIT ?",
-                (remaining,)
+                """SELECT * FROM tweets WHERE status IN ('approved', 'draft') AND posted_at IS NULL
+                   AND schedule_time IS NOT NULL AND schedule_time != ''
+                   AND schedule_time <= ?
+                   ORDER BY schedule_time ASC LIMIT ?""",
+                (now.isoformat(), max_posts - posted_today)
             )
-        eligible = [dict(row) for row in c.fetchall()]
+        scheduled = [dict(row) for row in c.fetchall()]
         conn.close()
+
+        if scheduled:
+            eligible = scheduled
+        else:
+            # Priority 2: General autopost pool (approved/draft tweets without schedule_time)
+            posts_per_run = autopost.get('posts_per_run', 1)
+            remaining = min(posts_per_run, max_posts - posted_today)
+            conn = sqlite3.connect(str(DB_FILE))
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+            if mode == 'approved':
+                c.execute(
+                    "SELECT * FROM tweets WHERE status = 'approved' AND posted_at IS NULL AND (schedule_time IS NULL OR schedule_time = '') ORDER BY date DESC, section_number DESC LIMIT ?",
+                    (remaining,)
+                )
+            else:
+                c.execute(
+                    "SELECT * FROM tweets WHERE status IN ('approved', 'draft') AND posted_at IS NULL AND (schedule_time IS NULL OR schedule_time = '') ORDER BY date DESC, section_number DESC LIMIT ?",
+                    (remaining,)
+                )
+            eligible = [dict(row) for row in c.fetchall()]
+            conn.close()
 
         if not eligible:
             return

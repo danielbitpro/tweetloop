@@ -136,7 +136,11 @@
                 </div>
                 <div class="form-group">
                     <label>Schedule Time</label>
-                    <input type="datetime-local" id="new-tweet-time">
+                    <div class="schedule-time-btn" onclick="openScheduleModal('new')">
+                        <span id="new-schedule-display">No schedule</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </div>
+                    <input type="hidden" id="new-tweet-time">
                 </div>
                 <div class="form-group">
                     <label>Hashtags</label>
@@ -181,7 +185,11 @@
                 </div>
                 <div class="form-group">
                     <label>Schedule Time</label>
-                    <input type="datetime-local" id="edit-tweet-time">
+                    <div class="schedule-time-btn" onclick="openScheduleModal('edit')">
+                        <span id="edit-schedule-display">No schedule</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </div>
+                    <input type="hidden" id="edit-tweet-time">
                 </div>
                 <div class="form-group">
                     <label>Hashtags</label>
@@ -268,6 +276,91 @@
                     <div class="hint">Number of tweets to generate</div>
                 </div>
                 <button class="btn btn-primary" onclick="runManualResearch()">RUN RESEARCH</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Modal (X-style) -->
+    <div class="modal-overlay" id="schedule-modal">
+        <div class="modal schedule-modal">
+            <div class="schedule-modal-header">
+                <button class="btn btn-sm" onclick="hideModal('schedule-modal')">✕</button>
+                <span>Schedule</span>
+                <button class="btn btn-sm schedule-confirm-btn" onclick="confirmSchedule()">Confirm</button>
+            </div>
+            <div class="schedule-modal-body">
+                <!-- Summary Line -->
+                <div class="schedule-summary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span id="schedule-preview">Will send on --</span>
+                </div>
+
+                <!-- Date Section -->
+                <div class="schedule-section">
+                    <label>Date</label>
+                    <div class="schedule-grid">
+                        <div class="schedule-select-group">
+                            <select id="schedule-month">
+                                <option value="0">Jan</option>
+                                <option value="1">Feb</option>
+                                <option value="2">Mar</option>
+                                <option value="3">Apr</option>
+                                <option value="4">May</option>
+                                <option value="5">Jun</option>
+                                <option value="6">Jul</option>
+                                <option value="7">Aug</option>
+                                <option value="8">Sep</option>
+                                <option value="9">Oct</option>
+                                <option value="10">Nov</option>
+                                <option value="11">Dec</option>
+                            </select>
+                        </div>
+                        <div class="schedule-select-group">
+                            <select id="schedule-day"></select>
+                        </div>
+                        <div class="schedule-select-group">
+                            <select id="schedule-year"></select>
+                        </div>
+                        <div class="schedule-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Section -->
+                <div class="schedule-section">
+                    <label>Time</label>
+                    <div class="schedule-grid">
+                        <div class="schedule-select-group">
+                            <select id="schedule-hour"></select>
+                        </div>
+                        <div class="schedule-select-group">
+                            <select id="schedule-minute"></select>
+                        </div>
+                        <div class="schedule-select-group">
+                            <select id="schedule-ampm">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                        <div class="schedule-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Zone Section -->
+                <div class="schedule-section">
+                    <label>Time zone</label>
+                    <div class="schedule-timezone" id="schedule-timezone-display">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="schedule-footer">
+                    <a href="#" onclick="viewScheduledPosts(); return false;">Scheduled posts</a>
+                </div>
             </div>
         </div>
     </div>
@@ -1485,6 +1578,167 @@
         // Check login on load
         checkLogin();
     
+        // ── X-Style Schedule Modal ──
+        let currentScheduleContext = null; // 'new' or 'edit'
+        let currentEditTweetId = null;
+        
+        // Initialize schedule modal dropdowns
+        function initScheduleModal() {
+            const now = new Date();
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            // Populate months
+            const monthSelect = document.getElementById('schedule-month');
+            monthSelect.innerHTML = '';
+            months.forEach((m, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = m.substring(0, 3);
+                if (i === now.getMonth()) opt.selected = true;
+                monthSelect.appendChild(opt);
+            });
+            
+            // Populate days
+            const daySelect = document.getElementById('schedule-day');
+            daySelect.innerHTML = '';
+            for (let d = 1; d <= 31; d++) {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                if (d === now.getDate()) opt.selected = true;
+                daySelect.appendChild(opt);
+            }
+            
+            // Populate years
+            const yearSelect = document.getElementById('schedule-year');
+            yearSelect.innerHTML = '';
+            for (let y = now.getFullYear(); y <= now.getFullYear() + 5; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === now.getFullYear()) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+            
+            // Populate hours (1-12)
+            const hourSelect = document.getElementById('schedule-hour');
+            hourSelect.innerHTML = '';
+            for (let h = 1; h <= 12; h++) {
+                const opt = document.createElement('option');
+                opt.value = h;
+                opt.textContent = h;
+                if (h === (now.getHours() % 12 || 12)) opt.selected = true;
+                hourSelect.appendChild(opt);
+            }
+            
+            // Populate minutes (00-59)
+            const minuteSelect = document.getElementById('schedule-minute');
+            minuteSelect.innerHTML = '';
+            for (let m = 0; m < 60; m++) {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m.toString().padStart(2, '0');
+                if (m === now.getMinutes()) opt.selected = true;
+                minuteSelect.appendChild(opt);
+            }
+            
+            // Set AM/PM
+            const ampmSelect = document.getElementById('schedule-ampm');
+            ampmSelect.value = now.getHours() >= 12 ? 'PM' : 'AM';
+            
+            // Set timezone
+            const tzDisplay = document.getElementById('schedule-timezone-display');
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const tzName = tz.replace(/_/g, ' ');
+            tzDisplay.textContent = tzName;
+            
+            // Add change listeners for live preview
+            ['schedule-month', 'schedule-day', 'schedule-year', 'schedule-hour', 'schedule-minute', 'schedule-ampm'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updateSchedulePreview);
+            });
+            
+            // Set initial preview
+            updateSchedulePreview();
+        }
+        
+        function updateSchedulePreview() {
+            const month = parseInt(document.getElementById('schedule-month').value);
+            const day = document.getElementById('schedule-day').value;
+            const year = document.getElementById('schedule-year').value;
+            const hour = parseInt(document.getElementById('schedule-hour').value);
+            const minute = document.getElementById('schedule-minute').value;
+            const ampm = document.getElementById('schedule-ampm').value;
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            const date = new Date(year, month, day, hour % 12 === 0 ? 12 : hour % 12, minute);
+            const dayName = days[date.getDay()];
+            const monthName = months[month];
+            const timeStr = hour % 12 === 0 ? '12' : hour % 12;
+            
+            document.getElementById('schedule-preview').textContent = 
+                `Will send on ${dayName}, ${monthName} ${day}, ${year} at ${timeStr}:${minute} ${ampm}`;
+        }
+        
+        function openScheduleModal(context) {
+            currentScheduleContext = context;
+            currentEditTweetId = context === 'edit' ? document.getElementById('edit-tweet-id')?.value : null;
+            
+            // If editing, populate from existing schedule_time
+            if (context === 'edit' && currentEditTweetId) {
+                const tweet = allTweets[currentEditTweetId];
+                if (tweet?.schedule_time) {
+                    const dt = new Date(tweet.schedule_time);
+                    document.getElementById('schedule-month').value = dt.getMonth();
+                    document.getElementById('schedule-day').value = dt.getDate();
+                    document.getElementById('schedule-year').value = dt.getFullYear();
+                    document.getElementById('schedule-hour').value = dt.getHours() % 12 === 0 ? 12 : dt.getHours() % 12;
+                    document.getElementById('schedule-minute').value = dt.getMinutes();
+                    document.getElementById('schedule-ampm').value = dt.getHours() >= 12 ? 'PM' : 'AM';
+                }
+            }
+            
+            updateSchedulePreview();
+            showModal('schedule-modal');
+        }
+        
+        function confirmSchedule() {
+            const month = parseInt(document.getElementById('schedule-month').value);
+            const day = document.getElementById('schedule-day').value;
+            const year = document.getElementById('schedule-year').value;
+            const hour = parseInt(document.getElementById('schedule-hour').value);
+            const minute = parseInt(document.getElementById('schedule-minute').value);
+            const ampm = document.getElementById('schedule-ampm').value;
+            
+            // Convert to 24h
+            let hours24 = hour;
+            if (ampm === 'PM' && hour !== 12) hours24 += 12;
+            if (ampm === 'AM' && hour === 12) hours24 = 0;
+            
+            // Create ISO datetime
+            const scheduleTime = new Date(year, month, day, hours24, minute).toISOString();
+            
+            if (currentScheduleContext === 'new') {
+                document.getElementById('new-tweet-time').value = scheduleTime;
+                document.getElementById('new-schedule-display').textContent = 
+                    `${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month]} ${year} ${hour}:${minute.toString().padStart(2,'0')} ${ampm}`;
+            } else if (currentScheduleContext === 'edit') {
+                document.getElementById('edit-tweet-time').value = scheduleTime;
+                document.getElementById('edit-schedule-display').textContent = 
+                    `${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month]} ${year} ${hour}:${minute.toString().padStart(2,'0')} ${ampm}`;
+            }
+            
+            hideModal('schedule-modal');
+        }
+        
+        function viewScheduledPosts() {
+            // Filter to show only scheduled tweets
+            document.getElementById('filter-status').value = 'scheduled';
+            renderFilteredTweets();
+            hideModal('schedule-modal');
+        }
+        
         // Handle image paste in textareas
         function handleImagePaste(event) {
             const items = event.clipboardData.items;
@@ -1492,19 +1746,37 @@
                 if (items[i].type.indexOf('image') !== -1) {
                     event.preventDefault();
                     const blob = items[i].getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const imgTag = '![' + (blob.name || 'image') + '](' + e.target.result + ')';
-                        const textarea = event.target;
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const text = textarea.value;
-                        textarea.value = text.substring(0, start) + imgTag + text.substring(end);
-                        textarea.selectionStart = textarea.selectionEnd = start + imgTag.length;
-                        // Trigger input event to update char count
-                        textarea.dispatchEvent(new Event('input'));
-                    };
-                    reader.readAsDataURL(blob);
+                    
+                    // Upload image to server
+                    const formData = new FormData();
+                    formData.append('image', blob, blob.name || 'image.png');
+                    
+                    showToast('Uploading image...');
+                    
+                    fetch('/api/media/upload', {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formData
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.url) {
+                            const imgTag = '\n\n[image: ' + data.url + ']\n\n';
+                            const textarea = event.target;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const text = textarea.value;
+                            textarea.value = text.substring(0, start) + imgTag + text.substring(end);
+                            textarea.selectionStart = textarea.selectionEnd = start + imgTag.length;
+                            textarea.dispatchEvent(new Event('input'));
+                            showToast('Image attached');
+                        } else {
+                            showToast('Upload failed: ' + (data.error || 'Unknown error'), true);
+                        }
+                    })
+                    .catch(e => {
+                        showToast('Upload failed: ' + e.message, true);
+                    });
                 }
             }
         }
