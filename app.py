@@ -119,9 +119,13 @@ DEFAULT_SETTINGS = {
     },
     "autopost": {
         "enable": False,
+        "preferred_times": ["09:00", "14:00", "19:00"],
+        "time_jitter": 15,
+        "posts_per_run": 1,
         "max_posts_per_day": 3,
         "min_gap_minutes": 60,
-        "preferred_times": ["09:00", "14:00", "19:00"],
+        "fallback_interval": 60,
+        "fallback_jitter": 10,
         "mode": "approved",
     },
 }

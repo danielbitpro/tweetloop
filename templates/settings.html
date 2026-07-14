@@ -456,19 +456,39 @@ https://example.com/blog/..."></textarea>
                 <label for="setting-enable-autopost">Enable auto-posting</label>
             </div>
             <div class="form-group">
-                <label>Max Posts per Day</label>
-                <input type="number" id="setting-autopost-max" value="3" min="1" max="10">
-                <div class="hint">Maximum tweets posted per day. Conservative: 3/day recommended.</div>
+                <label>Preferred Posting Times (24h, comma-separated)</label>
+                <input type="text" id="setting-autopost-times" value="09:00,14:00,19:00" placeholder="09:00,14:00,19:00">
+                <div class="hint">General windows for posting. Posts are randomly offset within these times.</div>
             </div>
             <div class="form-group">
-                <label>Minimum Gap Between Posts (minutes)</label>
+                <label>Time Jitter (minutes)</label>
+                <input type="number" id="setting-autopost-jitter" value="15" min="0" max="60">
+                <div class="hint">Random offset ±X minutes on preferred times. Adds natural variation. Default: 15 min.</div>
+            </div>
+            <div class="form-group">
+                <label>Posts per Run</label>
+                <input type="number" id="setting-autopost-per-run" value="1" min="1" max="5">
+                <div class="hint">How many tweets to post each time the scheduler fires. Default: 1.</div>
+            </div>
+            <div class="form-group">
+                <label>Max Posts per Day</label>
+                <input type="number" id="setting-autopost-max" value="3" min="1" max="10">
+                <div class="hint">Total tweets posted per day. Conservative: 3/day recommended.</div>
+            </div>
+            <div class="form-group">
+                <label>Min Gap Between Posts (minutes)</label>
                 <input type="number" id="setting-autopost-gap" value="60" min="15" max="240" step="15">
                 <div class="hint">Minimum time between posts. Prevents account ban. Default: 60 minutes.</div>
             </div>
             <div class="form-group">
-                <label>Preferred Posting Times (24h, comma-separated)</label>
-                <input type="text" id="setting-autopost-times" value="09:00,14:00,19:00" placeholder="09:00,14:00,19:00">
-                <div class="hint">Times of day when posts are scheduled. Format: HH:MM. Default: 9am, 2pm, 7pm.</div>
+                <label>Fallback Check Interval (minutes)</label>
+                <input type="number" id="setting-autopost-fallback" value="60" min="15" max="240" step="15">
+                <div class="hint">Between preferred times, check every X minutes. Default: 60 min.</div>
+            </div>
+            <div class="form-group">
+                <label>Fallback Jitter (minutes)</label>
+                <input type="number" id="setting-autopost-fallback-jitter" value="10" min="0" max="30">
+                <div class="hint">Random offset ±X minutes on fallback checks. Adds variation. Default: 10 min.</div>
             </div>
             <div class="form-group">
                 <label>Auto-Post Mode</label>
@@ -700,9 +720,13 @@ https://example.com/blog/..."></textarea>
 
                 // Auto-posting settings
                 document.getElementById('setting-enable-autopost').checked = settings.autopost?.enable ?? false;
+                document.getElementById('setting-autopost-times').value = (settings.autopost?.preferred_times || ['09:00', '14:00', '19:00']).join(', ');
+                document.getElementById('setting-autopost-jitter').value = settings.autopost?.time_jitter ?? 15;
+                document.getElementById('setting-autopost-per-run').value = settings.autopost?.posts_per_run ?? 1;
                 document.getElementById('setting-autopost-max').value = settings.autopost?.max_posts_per_day ?? 3;
                 document.getElementById('setting-autopost-gap').value = settings.autopost?.min_gap_minutes ?? 60;
-                document.getElementById('setting-autopost-times').value = (settings.autopost?.preferred_times || ['09:00', '14:00', '19:00']).join(', ');
+                document.getElementById('setting-autopost-fallback').value = settings.autopost?.fallback_interval ?? 60;
+                document.getElementById('setting-autopost-fallback-jitter').value = settings.autopost?.fallback_jitter ?? 10;
                 document.getElementById('setting-autopost-mode').value = settings.autopost?.mode || 'approved';
             } catch (error) {
                 console.error('Failed to load settings:', error);
@@ -770,9 +794,13 @@ https://example.com/blog/..."></textarea>
                 },
                 autopost: {
                     enable: document.getElementById('setting-enable-autopost').checked,
+                    preferred_times: document.getElementById('setting-autopost-times').value.split(',').map(t => t.trim()).filter(t => t),
+                    time_jitter: parseInt(document.getElementById('setting-autopost-jitter').value) || 15,
+                    posts_per_run: parseInt(document.getElementById('setting-autopost-per-run').value) || 1,
                     max_posts_per_day: parseInt(document.getElementById('setting-autopost-max').value) || 3,
                     min_gap_minutes: parseInt(document.getElementById('setting-autopost-gap').value) || 60,
-                    preferred_times: document.getElementById('setting-autopost-times').value.split(',').map(t => t.trim()).filter(t => t),
+                    fallback_interval: parseInt(document.getElementById('setting-autopost-fallback').value) || 60,
+                    fallback_jitter: parseInt(document.getElementById('setting-autopost-fallback-jitter').value) || 10,
                     mode: document.getElementById('setting-autopost-mode').value
                 }
             };
