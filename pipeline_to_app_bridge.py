@@ -95,10 +95,11 @@ def save_tweets(tweets):
     c.execute('DELETE FROM tweets')
     for tweet in tweets:
         c.execute('''
-            INSERT INTO tweets (id, text, label, hashtags, why_it_works, section_number, source_url, status, date, schedule_time, source)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO tweets (id, user_id, text, label, hashtags, why_it_works, section_number, source_url, status, date, schedule_time, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             tweet.get('id'),
+            tweet.get('user_id', '00000000-0000-0000-0000-000000000001'),
             tweet.get('text'),
             tweet.get('label'),
             tweet.get('hashtags', ''),
