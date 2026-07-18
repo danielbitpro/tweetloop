@@ -4,33 +4,37 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.x-green.svg)](https://flask.palletsprojects.com/)
 
-A research-to-post content pipeline for X/Twitter. Research, review, edit, and schedule tweets — all self-hosted.
+A research-to-post content dashboard for X/Twitter. Research, review, edit, and schedule tweets — all self-hosted.
 
 > "Research-driven content engine, not a generic tweet generator."
 
 ## Features
 
-- 🔍 **Source Research** — Pull from Twitter, GitHub, Reddit, Hacker News, and custom URLs
-- ✏️ **Review & Edit** — Full CRUD dashboard with approval workflow
+- ✏️ **Review & Edit** — Full CRUD dashboard with approval workflow (draft → approved → scheduled → posted)
 - 📅 **Scheduling** — Schedule tweets for specific times with rate limiting
-- 🔐 **Dual Auth** — Password auth (offline) or Supabase JWT (cloud)
-- 🗄️ **Dual DB** — SQLite (self-hosted) or PostgreSQL (Supabase)
-- 🎨 **Dark Terminal Theme** — Dark terminal aesthetic with neon accents
-- 🔌 **Pipeline Bridge** — Auto-import from AI research pipelines
+- 🔐 **Password Auth** — Session-based authentication, credentials in `.env`
+- 🗄️ **SQLite Storage** — WAL mode, foreign keys, proper indexing
 - 📊 **Status Tracking** — Draft, Approved, Scheduled, Posted, Manual
+- 🔍 **Search & Filter** — Text search + status + label filtering
+- 📦 **Bulk Actions** — Bulk approve/delete with selection
+- 📤 **Auto-Posting** — In-process scheduler with preferred times, rate limiting, daily caps
+- 📥 **Pipeline Bridge** — Auto-import from research pipeline output files
+- 📋 **Export** — Raw, CSV, Pipeline format for approved tweets; JSON/CSV for all
+- 📦 **Archive** — Monthly CSV archive with download and purge
+- ⚙️ **Settings Panel** — Configurable research sources, auto-posting, export, pipeline paths
+- 🎨 **Dark Terminal Theme** — Dark terminal aesthetic with neon accents
 
 ## Architecture
 
 ```
-Environment check:
-  │
-  ├─ SUPABASE_URL + SUPABASE_SERVICE_KEY set?
-  │   ├─ YES → Supabase PostgreSQL + JWT auth (cloud)
-  │   │
-  │   └─ NO → SQLite + password auth (offline)
+┌──────────────────┐     ┌─────────────────┐     ┌──────────────┐
+│  Research Pipeline│────>│  TweetLoop App  │────>│  X / Twitter │
+│  (external)       │     │  (Python/Flask) │     │              │
+└──────────────────┘     └─────────────────┘     └──────────────┘
+                           SQLite DB + .env config
 ```
 
-**One codebase, two modes.** No branching. The Supabase path is ready for when you build the paid tier later.
+**The app is a review dashboard.** The actual research, briefing, and tweet generation happen externally (cron jobs, AI agents, manual work). TweetLoop imports verified tweets via the bridge script and lets you review, edit, and post them.
 
 ## Quick Start
 
@@ -44,15 +48,23 @@ pip install -r requirements.txt
 
 ### 2. Configure
 
-Create a `.env` file:
+Create a `.env` file from the example:
 
 ```bash
-# Password auth (for offline/self-hosted)
-PASSWORD=your_secure_password_here
+cp env.example .env
+```
 
-# Or Supabase (for cloud deployment)
-# SUPABASE_URL=https://your-project.supabase.co
-# SUPABASE_SERVICE_KEY=your-service-key
+Edit `.env` and set at minimum:
+
+```bash
+PASSWORD=your_secure_password_here
+```
+
+Optional settings:
+
+```bash
+PORT=7777                    # App listening port (default: 7777)
+HTTPS_ENABLED=false          # Set true if you have certs/ directory
 ```
 
 ### 3. Run
@@ -61,16 +73,32 @@ PASSWORD=your_secure_password_here
 python3 app.py
 ```
 
-Navigate to `http://localhost:7777`
+Navigate to `http://localhost:7777` (or `https://localhost:7777` with HTTPS).
 
-## Integration with AI Pipeline
+### 4. Authorize Twitter (Optional — for posting from the app)
 
-TweetLoop reads verified tweets from pipeline output. The `pipeline_to_app_bridge.py` script automates this:
+To enable direct posting from the dashboard, run:
+
+```bash
+xurl auth oauth2 --app twitter
+```
+
+Follow the browser flow to authorize. Then configure OAuth1 tokens in `.env`:
+
+```bash
+XURL_APP_OAUTH1_TOKEN=your_token
+XURL_APP_OAUTH1_TOKEN_SECRET=your_token_secret
+XURL_APP_OAUTH1_SECRET=your_secret
+```
+
+## Integration with External Pipeline
+
+TweetLoop reads verified tweets from pipeline output files. The `pipeline_to_app_bridge.py` script imports them into the SQLite database.
 
 ### Bridge Script
 
 ```bash
-# Configure paths via environment variables (optional)
+# Configure paths (optional — defaults are sensible)
 export TLP_WORKSPACE=/path/to/workspace
 export TLP_DB_PATH=/path/to/data/tweetloop.db
 
@@ -78,75 +106,48 @@ export TLP_DB_PATH=/path/to/data/tweetloop.db
 python3 pipeline_to_app_bridge.py
 ```
 
-The bridge reads from `X-proposed-tweets/{date}-final.md` and imports new tweets into the app's SQLite database, checking for duplicates.
+### Expected Input Format
 
-### Manual Tweet Addition
+The bridge reads files matching `*-final.md` from the pipeline output directory. Each tweet should be formatted as:
 
-Use the "+ NEW" button in the dashboard to manually create tweets outside your pipeline.
+```markdown
+## X. [Label] | **Tweet:**
+> Tweet text here
+>
+> #Hashtag
 
-## Hermes Agent Integration
+**Source:** [Name](url)
+**Why it works:** Brief explanation
+```
 
-For Hermes users, install the `tweetloop` skill to automatically connect your AI pipeline to this dashboard.
+## Settings
+
+The app includes a settings panel (⚙ Settings button) with tabs for:
+
+- **App** — Password, port, auto-refresh interval
+- **Research** — Source quotas, custom accounts, keywords, research time window
+- **Copywriter** — Copywriting prompt configuration
+- **Export** — Export format preferences
+- **Pipeline** — Workspace paths, bridge settings
+- **Auto-Post** — Preferred times, rate limits, daily caps, mode (approved/all)
+
+## Database
+
+Tweets are stored in `data/tweetloop.db` (SQLite). The schema supports:
+
+- Tweet CRUD with status workflow
+- Deduplication via text similarity (SequenceMatcher)
+- Archive with monthly purge
+- Source URL extraction
 
 ## Docker Support
 
-Coming soon. Self-host with Docker for easy deployment.
-
-## Configuration
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `PORT` | HTTP port | `7777` |
-| `PASSWORD` | Auth password (`.env`) | Required for password auth |
-| `SUPABASE_URL` | Supabase project URL | Optional |
-| `SUPABASE_SERVICE_KEY` | Supabase service key | Optional |
-
-## Roadmap
-
-### Phase 1: Open-Source MVP (Current)
-- ✅ Flask backend with full CRUD API
-- ✅ SQLite database
-- ✅ Password auth
-- ✅ Supabase path ready
-- ✅ Frontend UI (Dark Terminal theme)
-- ✅ Pipeline bridge
-- ✅ Settings management
-- ✅ Emoji picker
-- ⏳ Docker support
-- ⏳ Source link fix (bug)
-- ⏳ Research time enforcement (bug)
-- ⏳ Deduplication with similarity
-
-### Phase 2: Open-Source Enhancements
-- Auto-posting settings (scheduled mode, rate limiting)
-- Configurable research sources
-- Manual research trigger
-- Fact check button
-- Rephrase button (local model)
-- Templates library
-- History + favorites
-
-### Phase 3: Paid Tier
-- ArXiv source
-- Custom websites
-- Prioritized X accounts
-- Manual keyword research
-- Auto-posting
-- Analytics
-- Multi-account support
+Coming soon.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE) for details.
 
 ## Contributing
 
-Contributions welcome! Please open an issue or submit a PR.
-
-## Support
-
-Found a bug? Have a feature request? Open an [issue](https://github.com/danielbitpro/tweetloop/issues).
-
----
-
-*Built with ❤️ for the Local AI community*
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
