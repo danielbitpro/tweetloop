@@ -536,11 +536,11 @@
             hideModal('research-modal');
             
             if (isOSS) {
-                // OSS mode: Open Google Search (AI Overview) with pre-filled topic
+                // OSS mode: Open Google AI Mode (AIMode) with pre-filled topic
                 const encodedTopic = encodeURIComponent(topic);
-                const searchUrl = `https://www.google.com/search?q=${encodedTopic}&udm=14`;
+                const searchUrl = `https://www.google.com/aimode?utm_source=google&utm_medium=google_aimode&q=${encodedTopic}`;
                 window.open(searchUrl, '_blank');
-                showToast('Opening Google Search for "' + topic + '"...');
+                showToast('Opening Google AI Mode for "' + topic + '"...');
             } else {
                 // Paid mode: Call Hermes endpoint
                 showToast('Running research for "' + topic + '"...');
@@ -1149,6 +1149,11 @@
                 return;
             }
             
+            if (isPastDate(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())) {
+                customAlert('Cannot schedule for a past date. Please select a future date.');
+                return;
+            }
+            
             const hour = parseInt(document.getElementById('schedule-hour').value) || 0;
             const minute = parseInt(document.getElementById('schedule-minute').value) || 0;
             const period = document.getElementById('schedule-period').value;
@@ -1168,9 +1173,28 @@
                 document.getElementById('new-schedule-display').textContent = 
                     `${selectedDate.getDate()} ${months[selectedDate.getMonth()]} ${selectedDate.getFullYear()} ${displayHour}:${String(minute).padStart(2, '0')} ${ampm}`;
             } else if (currentScheduleContext === 'edit') {
-                document.getElementById('edit-tweet-time').value = scheduleTime;
-                document.getElementById('edit-schedule-display').textContent = 
-                    `${selectedDate.getDate()} ${months[selectedDate.getMonth()]} ${selectedDate.getFullYear()} ${displayHour}:${String(minute).padStart(2, '0')} ${ampm}`;
+                // Check if we're scheduling from the tweet card (not the edit modal)
+                if (currentEditScheduleTweetId) {
+                    // Update the tweet's schedule_time via API (PUT method)
+                    fetch(`/api/tweets/${currentEditScheduleTweetId}`, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ schedule_time: scheduleTime })
+                    }).then(r => r.json()).then(data => {
+                        if (data.status === 'ok') {
+                            showToast('Scheduled for ' + displayHour + ':' + String(minute).padStart(2, '0') + ' ' + ampm);
+                        } else {
+                            customAlert('Failed to schedule: ' + (data.error || 'Unknown error'));
+                        }
+                    }).catch(e => {
+                        customAlert('Schedule failed: ' + e.message);
+                    });
+                } else {
+                    document.getElementById('edit-tweet-time').value = scheduleTime;
+                    document.getElementById('edit-schedule-display').textContent = 
+                        `${selectedDate.getDate()} ${months[selectedDate.getMonth()]} ${selectedDate.getFullYear()} ${displayHour}:${String(minute).padStart(2, '0')} ${ampm}`;
+                }
             }
             
             hideModal('schedule-modal');
