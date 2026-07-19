@@ -165,8 +165,32 @@ def _init_sqlite(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
         CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
 
+        -- Seed default user
         INSERT OR IGNORE INTO users (id, email, full_name)
         VALUES ('00000000-0000-0000-0000-000000000001', 'local@localhost', 'Local User');
+
+        -- Sample tweets for first-time users (SQLite mode only)
+        -- Disable FK checks during INSERT to avoid executescript() conflicts
+        PRAGMA foreign_keys = OFF;
+        INSERT OR IGNORE INTO tweets (id, user_id, text, label, hashtags, why_it_works, section_number, status, source, date) VALUES
+        ('sample-001', '00000000-0000-0000-0000-000000000001',
+            'Bonsai 27B quantized to just 3.9GB runs locally on iPhone with ~90% benchmark retention. Local LLMs keep shrinking while staying capable.',
+            'Bonsai iPhone', '#LocalAI',
+            'Practical demo of extreme quantization enabling mobile local inference. High engagement potential in LocalLLaMA community.',
+            1, 'draft', 'sample', '2026-07-19'),
+
+        ('sample-002', '00000000-0000-0000-0000-000000000001',
+            'vix: new coding agent built specifically for local LLMs via Ollama + llama.cpp. Full agentic workflow + extras for self-hosted setups.',
+            'vix Coding Agent', '#AIAgents',
+            'Directly addresses "build agents that work with my local models" pain point. Actionable share.',
+            2, 'approved', 'sample', '2026-07-19'),
+
+        ('sample-003', '00000000-0000-0000-0000-000000000001',
+            'reCamera Pro: open AI camera with on-device LLM (Qwen2 0.5B @13 t/s), VLM, Whisper STT/TTS on Rockchip NPU. True edge AI hardware.',
+            'reCamera Pro', '#EdgeAI',
+            'Concrete local/edge hardware example with real perf numbers. Appeals to hardware + local AI crowd.',
+            3, 'manual', 'sample', '2026-07-19');
+        PRAGMA foreign_keys = ON;
     """)
 
 
