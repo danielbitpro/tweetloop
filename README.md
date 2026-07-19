@@ -38,11 +38,26 @@ A research-to-post content dashboard for X/Twitter. Research, review, edit, and 
 
 ## Quick Start
 
-### 1. Clone & Install
+### 1. Prerequisites
+
+Install Python 3.10+ and pip:
+
+```bash
+sudo apt update
+sudo apt install python3 python3-pip python3-venv
+```
+
+### 2. Clone & Install
 
 ```bash
 git clone https://github.com/danielbitpro/tweetloop.git
 cd tweetloop
+
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
