@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/style.css?v=6">
 </head>
 <body>
     <!-- Login Screen -->
@@ -322,10 +322,6 @@
                             <input type="number" id="schedule-hour" min="0" max="23" value="12" class="time-number-input" oninput="updateSchedulePreview()">
                             <span class="time-separator">:</span>
                             <input type="number" id="schedule-minute" min="0" max="59" value="00" class="time-number-input" oninput="updateSchedulePreview()">
-                            <select id="schedule-period" class="time-period-select" onchange="updateSchedulePreview()">
-                                <option value="AM">AM</option>
-                                <option value="PM">PM</option>
-                            </select>
                         </div>
                         <div class="time-presets">
                             <button class="time-preset-btn" onclick="setTime(9,0)">09:00</button>
@@ -1156,11 +1152,13 @@
             
             const hour = parseInt(document.getElementById('schedule-hour').value) || 0;
             const minute = parseInt(document.getElementById('schedule-minute').value) || 0;
-            const period = document.getElementById('schedule-period').value;
             
-            let hour24 = hour;
-            if (period === 'PM' && hour !== 12) hour24 += 12;
-            if (period === 'AM' && hour === 12) hour24 = 0;
+            if (hour < 0 || hour > 23) {
+                customAlert('Hour must be between 0 and 23');
+                return;
+            }
+            
+            const hour24 = hour;
             
             const scheduleTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), hour24, minute).toISOString();
             
@@ -2224,7 +2222,6 @@
         function setTime(hour, minute) {
             document.getElementById('schedule-hour').value = hour;
             document.getElementById('schedule-minute').value = String(minute).padStart(2, '0');
-            document.getElementById('schedule-period').value = hour >= 12 ? 'PM' : 'AM';
             updateSchedulePreview();
         }
         
@@ -2236,7 +2233,7 @@
             const minute = now.getMinutes();
             document.getElementById('schedule-hour').value = hour;
             document.getElementById('schedule-minute').value = String(minute).padStart(2, '0');
-            document.getElementById('schedule-period').value = hour >= 12 ? 'PM' : 'AM';
+
             
             const tzDisplay = document.getElementById('schedule-timezone-display');
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -2249,11 +2246,13 @@
         function updateSchedulePreview() {
             const hour = parseInt(document.getElementById('schedule-hour').value) || 0;
             const minute = parseInt(document.getElementById('schedule-minute').value) || 0;
-            const period = document.getElementById('schedule-period').value;
             
-            let hour24 = hour;
-            if (period === 'PM' && hour !== 12) hour24 += 12;
-            if (period === 'AM' && hour === 12) hour24 = 0;
+            if (hour < 0 || hour > 23) {
+                customAlert('Hour must be between 0 and 23');
+                return;
+            }
+            
+            const hour24 = hour;
             
             if (!selectedDate) return;
             
@@ -2280,7 +2279,6 @@
                     const mi = dt.getMinutes();
                     document.getElementById('schedule-hour').value = hh;
                     document.getElementById('schedule-minute').value = String(mi).padStart(2, '0');
-                    document.getElementById('schedule-period').value = hh >= 12 ? 'PM' : 'AM';
                 }
             }
             
@@ -2302,11 +2300,13 @@
             
             const hour = parseInt(document.getElementById('schedule-hour').value) || 0;
             const minute = parseInt(document.getElementById('schedule-minute').value) || 0;
-            const period = document.getElementById('schedule-period').value;
             
-            let hour24 = hour;
-            if (period === 'PM' && hour !== 12) hour24 += 12;
-            if (period === 'AM' && hour === 12) hour24 = 0;
+            if (hour < 0 || hour > 23) {
+                customAlert('Hour must be between 0 and 23');
+                return;
+            }
+            
+            const hour24 = hour;
             
             const scheduleTime = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), hour24, minute).toISOString();
             
