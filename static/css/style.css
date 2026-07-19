@@ -54,6 +54,7 @@ body::before {
     border-bottom: 1px solid var(--border-color);
     padding: 0;
     display: flex;
+    flex-direction: column;
     align-items: stretch;
     position: sticky;
     top: 0;
@@ -68,9 +69,11 @@ body::before {
     color: var(--text-muted);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-weight: 400;
     letter-spacing: 0.5px;
+    flex: 1;
 }
 
 .header-terminal-bar .prompt { color: var(--accent-green); }
@@ -93,9 +96,10 @@ body::before {
 .header-main {
     padding: 16px 28px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     gap: 32px;
+    flex: 1;
 }
 
 .header-title {
@@ -650,7 +654,7 @@ body::before {
 }
 
 .emoji-picker {
-    position: absolute;
+    position: fixed;
     right: 0;
     top: 100%;
     background: var(--bg-secondary);
@@ -658,10 +662,11 @@ body::before {
     border-radius: var(--radius);
     padding: 8px;
     display: none;
-    z-index: 10;
-    min-width: 200px;
-    max-height: 200px;
+    z-index: 10001;
+    min-width: 240px;
+    max-height: 320px;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .emoji-picker.active {
@@ -890,7 +895,7 @@ body::before {
 .login-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: #000000;
     display: none;
     align-items: center;
     justify-content: center;
@@ -1420,6 +1425,182 @@ body::before {
 .schedule-footer a:hover {
     color: var(--text-primary);
     text-decoration: underline;
+}
+
+/* Custom Date Picker */
+.schedule-date-picker {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 12px;
+}
+
+.schedule-calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.cal-month-year {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.cal-nav {
+    background: none;
+    border: none;
+    color: var(--accent-green);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.cal-nav:hover {
+    background: rgba(52, 211, 153, 0.1);
+}
+
+.cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.cal-weekdays span {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    font-weight: 500;
+}
+
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.cal-day {
+    text-align: center;
+    padding: 10px 4px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    transition: all 0.15s;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cal-day:hover {
+    background: rgba(52, 211, 153, 0.15);
+}
+
+.cal-day.today {
+    color: var(--accent-green);
+    font-weight: 700;
+}
+
+.cal-day.today:hover {
+    background: rgba(52, 211, 153, 0.2);
+}
+
+.cal-day.selected {
+    background: var(--accent-green);
+    color: #000;
+    font-weight: 700;
+}
+
+.cal-day.other-month {
+    color: var(--text-tertiary);
+    opacity: 0.4;
+}
+
+/* Custom Time Picker */
+.schedule-time-picker {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 12px;
+}
+
+.time-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.time-number-input {
+    width: 60px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 18px;
+    font-family: var(--font-mono);
+    text-align: center;
+}
+
+.time-number-input:focus {
+    outline: none;
+    border-color: var(--accent-green);
+}
+
+.time-separator {
+    color: var(--text-secondary);
+    font-size: 18px;
+    font-family: var(--font-mono);
+}
+
+.time-period-select {
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+}
+
+.time-period-select:focus {
+    outline: none;
+    border-color: var(--accent-green);
+}
+
+.time-presets {
+    display: flex;
+    gap: 8px;
+}
+
+.time-preset-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.time-preset-btn:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    background: rgba(52, 211, 153, 0.1);
 }
 
 /* Responsive */

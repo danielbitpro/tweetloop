@@ -87,39 +87,57 @@ def load_tweets():
 
 
 def save_tweets(tweets):
-    """Save all tweets to the SQLite database."""
+    """Save only new tweets to the SQLite database, preserving existing ones."""
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    # Clear existing tweets and re-insert (simple approach)
-    c.execute('DELETE FROM tweets')
+    
+    # Load existing tweet IDs to avoid duplicates
+    c.execute('SELECT id FROM tweets')
+    existing_ids = {row[0] for row in c.fetchall()}
+    
+    new_count = 0
     for tweet in tweets:
-        c.execute('''
-            INSERT INTO tweets (id, user_id, text, label, hashtags, why_it_works, section_number, source_url, status, date, schedule_time, source)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            tweet.get('id'),
-            tweet.get('user_id', '00000000-0000-0000-0000-000000000001'),
-            tweet.get('text'),
-            tweet.get('label'),
-            tweet.get('hashtags', ''),
-            tweet.get('why_it_works'),
-            tweet.get('section_number'),
-            tweet.get('source_url'),
-            tweet.get('status', 'draft'),
-            tweet.get('date'),
-            tweet.get('schedule_time'),
-            tweet.get('source', 'pipeline'),
-        ))
+        tweet_id = tweet.get('id')
+        if tweet_id and tweet_id not in existing_ids:
+            c.execute('''
+                INSERT INTO tweets (id, user_id, text, label, hashtags, why_it_works, section_number, source_url, status, date, schedule_time, source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                tweet_id,
+                tweet.get('user_id', '00000000-0000-0000-0000-000000000001'),
+                tweet.get('text'),
+                tweet.get('label'),
+                tweet.get('hashtags', ''),
+                tweet.get('why_it_works'),
+                tweet.get('section_number'),
+                tweet.get('source_url'),
+                tweet.get('status', 'draft'),
+                tweet.get('date'),
+                tweet.get('schedule_time'),
+                tweet.get('source', 'pipeline'),
+            ))
+            existing_ids.add(tweet_id)
+            new_count += 1
+    
     conn.commit()
     conn.close()
+    return new_count
 
 
 def extract_source_url_from_block(block):
     """Extract the source URL directly from a tweet block's **Source:** line.
-    Format: **Source:** [Name](url)
+    
+    Handles two formats:
+    1. **Source:** [Name](url)  — markdown link syntax
+    2. **Source:** Name (url)    — plain text with URL in parens
     Returns the URL string or None."""
+    # Try markdown link format first: [Name](url)
     match = re.search(r'\*\*Source:\*\*\s+\[.*?\]\((https?://[^\)]+)\)', block)
+    if match:
+        return match.group(1)
+    # Try plain text format: Name (url)
+    match = re.search(r'\*\*Source:\*\*\s+.*?\s+\((https?://[^\)]+)\)', block)
     if match:
         return match.group(1)
     return None
@@ -186,7 +204,10 @@ def parse_tweets_from_md(file_path):
                 continue
 
             # Closing pipe ends the tweet block — stop processing this block
-            if line_stripped == '|' and in_tweet_block:
+            # Closing pipe ends the tweet block — stop processing this block
+            # The pipe can appear on its own line, inline with > prefix,
+            # or inline with > prefix followed by metadata like **Source:**
+            if (line_stripped == '|' or line_stripped.startswith('> |')) and in_tweet_block:
                 in_tweet_block = False
                 after_closing_pipe = True
                 continue
@@ -388,8 +409,36 @@ def bridge():
         print(f"No final file found for {today} at {final_file}")
         return
 
-    print(f"Reading pipeline output from: {final_file}")
-    pipeline_tweets = parse_tweets_from_md(final_file)
+    # Retry mechanism: the file might not be fully written yet
+    import time
+    max_retries = 3
+    pipeline_tweets = []
+    for attempt in range(max_retries):
+        if not final_file.exists():
+            print(f"Attempt {attempt + 1}/{max_retries}: File not found, waiting...")
+            time.sleep(1)
+            continue
+        
+        # Check file size - should be at least 100 bytes for a valid tweet file
+        file_size = final_file.stat().st_size
+        if file_size < 100:
+            print(f"Attempt {attempt + 1}/{max_retries}: File too small ({file_size} bytes), waiting...")
+            time.sleep(1)
+            continue
+        
+        print(f"Reading pipeline output from: {final_file} ({file_size} bytes)")
+        pipeline_tweets = parse_tweets_from_md(final_file)
+        
+        if pipeline_tweets:
+            print(f"Found {len(pipeline_tweets)} tweets in pipeline output.")
+            break
+        else:
+            if attempt < max_retries - 1:
+                print(f"Attempt {attempt + 1}/{max_retries}: No tweets found, waiting...")
+                time.sleep(1)
+            else:
+                print(f"No tweets found in the pipeline output after {max_retries} attempts.")
+                return
 
     if not pipeline_tweets:
         print("No tweets found in the pipeline output.")
@@ -441,8 +490,8 @@ def bridge():
         new_count += 1
 
     if new_count > 0:
-        save_tweets(app_tweets)
-        print(f"✓ Added {new_count} new tweets to the app.")
+        inserted = save_tweets(app_tweets)
+        print(f"✓ Added {inserted} new tweets to the app.")
         print(f"  - Exact duplicates skipped: {skipped_exact}")
         print(f"  - Similar duplicates skipped: {duplicate_count}")
         print(f"  Total tweets in app: {len(app_tweets)}")

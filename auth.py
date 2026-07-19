@@ -153,6 +153,7 @@ def login_endpoint():
     elif USE_PASSWORD_AUTH:
         if entered_password == PASSWORD_HASH:
             session['authenticated'] = True
+            session.permanent = True
             return jsonify({'status': 'authenticated'})
         else:
             return jsonify({'status': 'unauthorized', 'error': 'Invalid password'}), 401

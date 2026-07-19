@@ -183,7 +183,7 @@ def _init_sqlite(conn: sqlite3.Connection) -> None:
             'vix: new coding agent built specifically for local LLMs via Ollama + llama.cpp. Full agentic workflow + extras for self-hosted setups.',
             'vix Coding Agent', '#AIAgents',
             'Directly addresses "build agents that work with my local models" pain point. Actionable share.',
-            2, 'approved', 'sample', '2026-07-19'),
+            2, 'draft', 'sample', '2026-07-19'),
 
         ('sample-003', '00000000-0000-0000-0000-000000000001',
             'reCamera Pro: open AI camera with on-device LLM (Qwen2 0.5B @13 t/s), VLM, Whisper STT/TTS on Rockchip NPU. True edge AI hardware.',

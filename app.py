@@ -16,7 +16,7 @@ import os
 import sqlite3
 import subprocess
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session, send_file
 
 from database import (
@@ -55,6 +55,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 PORT = int(os.environ.get('PORT', 7777))
 
@@ -281,8 +282,7 @@ def delete_tweet(tweet_id):
 
 def post_tweet_via_xurl(tweet_text):
     """Post a tweet using xurl CLI. Returns (success, message)."""
-    escaped_text = tweet_text.replace("'", "'\\\\''")
-    cmd = [XURL_PATH, '--app', 'twitter', '--auth', 'oauth1', 'post', escaped_text]
+    cmd = [XURL_PATH, '--app', 'twitter', '--auth', 'oauth1', 'post', tweet_text]
     env = os.environ.copy()
     env['PATH'] = os.path.expanduser('~/.local/bin') + ':' + env.get('PATH', '')
     try:
