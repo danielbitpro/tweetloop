@@ -1182,7 +1182,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ schedule_time: scheduleTime })
                     }).then(r => r.json()).then(data => {
-                        if (data.status === 'ok') {
+                        if (data && !data.error) {
                             showToast('Scheduled for ' + displayHour + ':' + String(minute).padStart(2, '0') + ' ' + ampm);
                         } else {
                             customAlert('Failed to schedule: ' + (data.error || 'Unknown error'));
