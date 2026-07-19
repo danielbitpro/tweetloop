@@ -40,12 +40,14 @@ A research-to-post content dashboard for X/Twitter. Research, review, edit, and 
 
 ### 1. Prerequisites
 
-Install Python 3.10+ and pip:
+Install Python 3.10+, pip, and venv support:
 
 ```bash
 sudo apt update
-sudo apt install python3 python3-pip python3-venv
+sudo apt install python3 python3-pip python3.12-venv
 ```
+
+> **Note:** On Ubuntu 24.04+, `python3-venv` alone isn't enough — you need the version-specific `python3.12-venv` package.
 
 ### 2. Clone & Install
 
