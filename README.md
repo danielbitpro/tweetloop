@@ -87,10 +87,17 @@ HTTPS_ENABLED=false          # Set true if you have certs/ directory
 ### 3. Run
 
 ```bash
+# Option A: Run with venv's Python directly (recommended, no activation needed)
+.venv/bin/python3 app.py
+
+# Option B: Activate venv first, then use python3 normally
+source .venv/bin/activate
 python3 app.py
 ```
 
 Navigate to `http://localhost:7777` (or `https://localhost:7777` with HTTPS).
+
+> **Note:** If you open a new terminal session, the venv won't be active. Use `.venv/bin/python3 app.py` to avoid this.
 
 ### 4. Authorize Twitter (Optional — for posting from the app)
 
