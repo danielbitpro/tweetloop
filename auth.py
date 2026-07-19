@@ -29,10 +29,13 @@ def get_password():
                 line = line.strip()
                 if line.startswith('PASSWORD='):
                     return line.split('=', 1)[1].strip().strip('"').strip("'")
-    return os.environ.get('PASSWORD', '')
+    # Check environment variable
+    if 'PASSWORD' in os.environ:
+        return os.environ.get('PASSWORD', '')
+    return None  # Sentinel: no password configured at all
 
 PASSWORD_HASH = get_password()
-USE_PASSWORD_AUTH = bool(PASSWORD_HASH)
+USE_PASSWORD_AUTH = PASSWORD_HASH is not None
 
 # ---------------------------------------------------------------------------
 # Supabase JWT auth (cloud / local with Supabase)

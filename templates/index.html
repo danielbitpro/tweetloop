@@ -538,7 +538,7 @@
             if (isOSS) {
                 // OSS mode: Open Google Search (AI Overview) with pre-filled topic
                 const encodedTopic = encodeURIComponent(topic);
-                const searchUrl = `https://www.google.com/search?q=${encodedTopic}`;
+                const searchUrl = `https://www.google.com/search?q=${encodedTopic}&udm=14`;
                 window.open(searchUrl, '_blank');
                 showToast('Opening Google Search for "' + topic + '"...');
             } else {
@@ -833,7 +833,7 @@
                     ${whyHtml}
 
                     <div class="tweet-meta">
-                        <span>${hashtagsHtml ? hashtagsHtml + ' | ' : ''}${tweet.schedule_time ? 'SCHEDULE: ' + formatDate(tweet.schedule_time) : ''}${tweet.schedule_time && hashtagsHtml ? ' | ' : ''}${tweet.source || 'manual'}${tweet.source_url ? ' <a href="' + escapeHtml(tweet.source_url) + '" target="_blank" rel="noopener" class="tweet-source-link">Source - ' + getSourcePlatform(tweet.source_url) + '</a>' : ''}</span>
+                        <span>${hashtagsHtml ? hashtagsHtml + ' | ' : ''}${tweet.schedule_time ? '📅 ' + formatScheduleTime(tweet.schedule_time) : ''}${tweet.schedule_time ? ' · ' : ''}${tweet.source || 'manual'}${tweet.source_url ? ' <a href="' + escapeHtml(tweet.source_url) + '" target="_blank" rel="noopener" class="tweet-source-link">Source - ' + getSourcePlatform(tweet.source_url) + '</a>' : ''}</span>
                     </div>
 
                     <div class="tweet-actions-right">
@@ -1223,9 +1223,18 @@
 
         async function confirmDeleteTweet(id) {
             if (await customConfirm('Delete this tweet?')) {
-                await fetch(`/api/tweets/${id}`, { method: 'DELETE' });
-                fetchTweets();
-                populateLabels();
+                const response = await fetch(`/api/tweets/${id}`, { 
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    fetchTweets();
+                    populateLabels();
+                    showToast('Tweet deleted');
+                } else {
+                    const error = await response.json();
+                    customAlert('Failed to delete tweet: ' + (error.error || 'Unknown error'));
+                }
             }
         }
 
@@ -1422,6 +1431,17 @@
         function showModal(id) { document.getElementById(id).classList.add('active'); }
         function hideModal(id) { document.getElementById(id).classList.remove('active'); }
         function formatDate(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString(); }
+        
+        function formatScheduleTime(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const h = d.getHours();
+            const m = d.getMinutes();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const hour12 = h % 12 === 0 ? 12 : h % 12;
+            return `${months[d.getMonth()]} ${d.getDate()} at ${hour12}:${String(m).padStart(2, '0')} ${ampm}`;
+        }
 
         // ── Emoji Picker ─────────────────────────────────────────────
         const EMOJI_DATA = {
@@ -2170,6 +2190,13 @@
             updateSchedulePreview();
         }
         
+        function isPastDate(year, month, day) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selected = new Date(year, month, day);
+            return selected < today;
+        }
+        
         function setTime(hour, minute) {
             document.getElementById('schedule-hour').value = hour;
             document.getElementById('schedule-minute').value = String(minute).padStart(2, '0');
@@ -2241,6 +2268,11 @@
         function confirmSchedule() {
             if (!selectedDate) {
                 customAlert('Select a date');
+                return;
+            }
+            
+            if (isPastDate(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())) {
+                customAlert('Cannot schedule for a past date. Please select a future date.');
                 return;
             }
             
