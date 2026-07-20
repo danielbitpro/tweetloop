@@ -207,7 +207,7 @@ def status():
 @require_auth
 def get_tweets():
     user_id = request.user_id
-    tweets = db_get_tweets(user_id, limit=500)
+    tweets = db_get_tweets(user_id, limit=1000)
     
     # Group by date for frontend
     grouped = {}
@@ -244,7 +244,7 @@ def add_tweet():
         'status': 'draft',
         'schedule_time': data.get('schedule_time'),
         'source': data.get('source', 'manual'),
-        'source_url': None,
+        'source_url': data.get('source_url'),
     }
     
     result = db_create_tweet(user_id, new_tweet)

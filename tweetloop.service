@@ -4,12 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=danny
-WorkingDirectory=/home/danny/workspace/tweetloop
-ExecStart=/usr/bin/python3 /home/danny/workspace/tweetloop/app.py
+WorkingDirectory=/home/danny/workspace/twitter-reviewer
+ExecStart=/home/danny/.hermes/hermes-agent/venv/bin/python3 /home/danny/workspace/twitter-reviewer/app.py
 Environment=PORT=7777
 Restart=always
 RestartSec=10
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

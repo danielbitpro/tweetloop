@@ -1605,30 +1605,220 @@ body::before {
 
 /* Responsive */
 @media (max-width: 768px) {
+    /* ── Header: stack title + buttons, make scrollable ── */
+    .header-main {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+
+    .header-title {
+        text-align: center;
+        font-size: 13px;
+    }
+
     .header-actions {
-        gap: 8px;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
     }
-    
-    .btn {
-        padding: 6px 12px;
-        font-size: 11px;
+
+    .header-actions .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 6px 10px;
+        font-size: 10px;
     }
-    
+
+    /* Hide less-critical buttons on very small screens */
+    @media (max-width: 400px) {
+        .header-actions .btn:nth-child(5), /* IMPORT */
+        .header-actions .btn:nth-child(6)  /* EXPORT */
+        {
+            display: none;
+        }
+    }
+
+    /* ── Terminal bar: wrap and shrink ── */
+    .header-terminal-bar {
+        font-size: 9px;
+        padding: 4px 12px;
+        gap: 4px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* ── Container: tighter margins ── */
+    .container {
+        padding: 16px 12px;
+    }
+
+    /* ── Summary bar: stack on very small screens ── */
+    .summary-item {
+        padding: 8px 8px;
+    }
+
+    .summary-item .count {
+        font-size: 18px;
+    }
+
+    .summary-item .label {
+        font-size: 8px;
+    }
+
+    /* ── Search bar: stack + full-width ── */
     .search-bar {
+        gap: 8px;
+        margin-bottom: 16px;
         flex-direction: column;
     }
-    
+
+    .search-input {
+        width: 100%;
+    }
+
     .filter-select {
-        min-width: auto;
+        min-width: 0;
+        width: 100%;
+        font-size: 11px;
     }
-    
-    .modal {
-        width: 95%;
+
+    .search-bar .btn {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 11px;
+        white-space: nowrap;
     }
-    
+
+    /* ── Bulk bar ── */
+    .bulk-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .bulk-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    /* ── Tweet card actions: smaller ── */
     .tweet-actions-right .btn {
-        min-width: 60px;
+        min-width: 50px;
         font-size: 9px;
         padding: 3px 6px;
+        flex: 1 1 auto;
+    }
+
+    .tweet-code-text {
+        font-size: 12px;
+        padding: 10px 8px;
+    }
+
+    .tweet-card-header {
+        padding: 6px 10px;
+        font-size: 9px;
+    }
+
+    .tweet-why {
+        padding: 6px 8px;
+        font-size: 10px;
+    }
+
+    .tweet-meta {
+        padding: 6px 8px;
+        font-size: 9px;
+    }
+
+    /* ── Modals: full-screen on mobile ── */
+    .modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .modal-body {
+        padding: 16px;
+    }
+
+    .copy-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .schedule-modal {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+    }
+
+    /* ── Banners: full-width, no min-width ── */
+    .autopost-banner,
+    .archive-banner {
+        min-width: 0;
+        left: 12px;
+        right: 12px;
+        transform: none;
+        padding: 10px 14px;
+    }
+
+    .autopost-banner-content,
+    .archive-banner-content {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .autopost-banner {
+        top: 60px;
+    }
+
+    .archive-banner {
+        top: 60px;
+    }
+
+    /* ── Login overlay: full width ── */
+    .login-box {
+        width: 100%;
+        padding: 24px 16px;
+        border-radius: 0;
+        max-width: 100%;
+    }
+
+    /* ── Date header ── */
+    .date-header {
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+
+    .date-header .count-badge {
+        font-size: 9px;
+        padding: 1px 8px;
+    }
+}
+
+/* ── Extra-small screens (360px and below) ── */
+@media (max-width: 360px) {
+    .header-actions .btn {
+        padding: 5px 8px;
+        font-size: 9px;
+    }
+
+    .tweet-actions-right .btn {
+        min-width: 44px;
+        font-size: 8px;
+    }
+
+    .summary-bar {
+        flex-wrap: wrap;
+    }
+
+    .summary-item {
+        flex: 1 1 45%;
     }
 }

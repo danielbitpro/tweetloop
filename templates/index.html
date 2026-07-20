@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=6">
+    <link rel="stylesheet" href="/static/css/style.css?v=8">
 </head>
 <body>
     <!-- Login Screen -->
@@ -2451,8 +2451,8 @@
                 for (const line of trimmed.split('\n')) {
                     const lineStripped = line.trim();
                     
-                    // Check for tweet header
-                    if (!tweetHeaderSeen && (lineStripped.includes('| **Tweet:**') || lineStripped === '| **Tweet:**')) {
+                    // Check for tweet header (handles both "## 1. [Label] | **Tweet:**" and bare "| **Tweet:**")
+                    if (!tweetHeaderSeen && lineStripped.includes('**Tweet:**')) {
                         inTweetBlock = true;
                         afterClosingPipe = false;
                         tweetHeaderSeen = true;

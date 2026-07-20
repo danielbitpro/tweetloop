@@ -101,8 +101,8 @@ def save_tweets(tweets):
         tweet_id = tweet.get('id')
         if tweet_id and tweet_id not in existing_ids:
             c.execute('''
-                INSERT INTO tweets (id, user_id, text, label, hashtags, why_it_works, section_number, source_url, status, date, schedule_time, source)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tweets (id, user_id, text, label, hashtags, why_it_works, section_number, source_url, status, date, schedule_time, source, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ''', (
                 tweet_id,
                 tweet.get('user_id', '00000000-0000-0000-0000-000000000001'),
