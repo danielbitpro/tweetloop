@@ -2441,25 +2441,51 @@
                 const labelMatch = trimmed.match(/\[([^\]]+)\]/);
                 const label = labelMatch ? labelMatch[1] : null;
                 
-                // Extract tweet text from blockquote lines
+                // Extract tweet text from blockquote OR table format
                 const tweetTextLines = [];
                 const hashtags = [];
                 let inTweetBlock = false;
                 let afterClosingPipe = false;
                 let tweetHeaderSeen = false;
+                let inTableFormat = false;
+                let tableSeparatorSeen = false;
                 
                 for (const line of trimmed.split('\n')) {
                     const lineStripped = line.trim();
                     
                     // Check for tweet header (handles both "## 1. [Label] | **Tweet:**" and bare "| **Tweet:**")
                     if (!tweetHeaderSeen && lineStripped.includes('**Tweet:**')) {
-                        inTweetBlock = true;
-                        afterClosingPipe = false;
                         tweetHeaderSeen = true;
+                        // Detect if this is a table format (has || **Tweet:** |)
+                        inTableFormat = lineStripped.startsWith('||') || lineStripped.startsWith('|');
+                        if (!inTableFormat) {
+                            inTweetBlock = true;
+                            afterClosingPipe = false;
+                        }
                         continue;
                     }
                     
-                    // Closing pipe ends the tweet block
+                    // Handle table format separator row (||---|)
+                    if (inTableFormat && tableSeparatorSeen === false && lineStripped.includes('|---') && lineStripped.includes('|')) {
+                        tableSeparatorSeen = true;
+                        continue;
+                    }
+                    
+                    // Handle table format content rows (|| > text |)
+                    if (inTableFormat && tableSeparatorSeen && lineStripped.startsWith('||')) {
+                        // Extract content between || and |
+                        const innerContent = lineStripped.slice(2, -1).trim(); // Remove leading || and trailing |
+                        if (!innerContent) {
+                            tweetTextLines.push('');
+                        } else if (innerContent.startsWith('#')) {
+                            hashtags.push(innerContent);
+                        } else {
+                            tweetTextLines.push(innerContent);
+                        }
+                        continue;
+                    }
+                    
+                    // Closing pipe ends the tweet block (blockquote format)
                     if ((lineStripped === '|' || lineStripped.startsWith('> |')) && inTweetBlock) {
                         inTweetBlock = false;
                         afterClosingPipe = true;
