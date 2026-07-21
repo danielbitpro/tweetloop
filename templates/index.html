@@ -18,6 +18,9 @@
     <link rel="stylesheet" href="/static/css/style.css?v=8">
 </head>
 <body>
+    <!-- Debug version banner (remove after import debugging) -->
+    <div id="version-banner" style="position:fixed;top:0;left:0;right:0;background:#ff6b00;color:#fff;text-align:center;padding:6px;font-family:monospace;font-size:12px;z-index:99999;cursor:pointer;" onclick="this.style.display='none'" title="Click to dismiss">🐛 DEBUG MODE — v2.0.5</div>
+
     <!-- Login Screen -->
     <div class="login-overlay" id="login-overlay">
         <div class="login-box">
@@ -2381,24 +2384,21 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            console.log('[IMPORT] File selected:', file.name, 'Size:', file.size, 'bytes');
-            showToast('Reading file: ' + file.name);
+            showToast('📂 ' + file.name + ' (' + file.size + ' bytes)');
             
             try {
                 const content = await file.text();
-                console.log('[IMPORT] File read successfully, length:', content.length);
-                console.log('[IMPORT] First 200 chars:', content.substring(0, 200).replace(/\n/g, '\\n'));
+                showToast('📄 Read ' + content.length + ' chars');
                 
                 const tweets = parseTweetsFromMarkdown(content, file.name);
-                console.log('[IMPORT] Parser returned', tweets.length, 'tweets');
+                showToast('🔍 Parser found ' + tweets.length + ' tweets');
                 
                 if (tweets.length === 0) {
-                    console.log('[IMPORT] ERROR: No tweets found');
-                    showToast('No tweets found in file', true);
+                    showToast('❌ No tweets found in file', true);
                     return;
                 }
                 
-                showToast(`Importing ${tweets.length} tweets...`);
+                showToast('📥 Importing ' + tweets.length + ' tweets...');
             
             let imported = 0;
             let skipped = 0;
