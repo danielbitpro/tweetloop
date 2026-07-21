@@ -21,10 +21,13 @@ echo ""
 
 # ── Step 1: System dependencies ──────────────────────────────
 
-if ! command -v python3 &>/dev/null; then
-    echo "📦 Installing Python 3, pip, and venv..."
+# Check if python3.venv module is available (not just python3)
+if ! python3 -c "import venv" 2>/dev/null; then
+    echo "📦 Installing Python 3, pip, and venv support..."
     sudo apt-get update -qq
-    sudo apt-get install -y -qq python3 python3-pip python3.12-venv > /dev/null 2>&1
+    PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    VENV_PKG="python${PY_VERSION}-venv"
+    sudo apt-get install -y -qq python3 python3-pip "${VENV_PKG}" > /dev/null 2>&1
 fi
 
 # Detect actual Python version (could be 3.11, 3.12, 3.13, etc.)
