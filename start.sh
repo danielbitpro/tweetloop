@@ -6,8 +6,9 @@
 # What it does:
 #   1. Installs system dependencies (Python, pip, venv)
 #   2. Creates a virtual environment
-#   3. Installs Python dependencies
-#   4. Starts the Flask app
+#   3. Generates .env with default password if missing
+#   4. Installs Python dependencies
+#   5. Starts the Flask app
 #
 # Prerequisites: None. Run this on a fresh Ubuntu/Debian machine.
 
@@ -32,13 +33,6 @@ fi
 
 # Detect actual Python version (could be 3.11, 3.12, 3.13, etc.)
 PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-VENV_PKG="python${PY_VERSION}-venv"
-
-# Install the version-specific venv package (Ubuntu 24.04+ requires this)
-if ! python3 -m venv --help &>/dev/null; then
-    echo "📦 Installing Python ${PY_VERSION} venv support..."
-    sudo apt-get install -y -qq "${VENV_PKG}" > /dev/null 2>&1
-fi
 
 # ── Step 2: Virtual environment ──────────────────────────────
 
@@ -47,17 +41,34 @@ if [ ! -f .venv/bin/python3 ]; then
     python3 -m venv .venv
 fi
 
-# ── Step 3: Python dependencies ──────────────────────────────
+# ── Step 3: Generate .env if missing ─────────────────────────
+
+if [ ! -f .env ]; then
+    echo "📝 Generating .env with default password..."
+    cat > .env << 'EOF'
+# TweetLoop Configuration
+# Generated automatically by start.sh
+# ⚠️  Change PASSWORD before using in production!
+
+PASSWORD=tweetloop
+PORT=7777
+HTTPS_ENABLED=false
+EOF
+    echo "   → .env created with default password (change it in Settings!)"
+fi
+
+# ── Step 4: Python dependencies ──────────────────────────────
 
 if ! .venv/bin/python3 -c "import flask" 2>/dev/null; then
     echo "📦 Installing Python dependencies..."
     .venv/bin/python3 -m pip install -q -r requirements.txt
 fi
 
-# ── Step 4: Start the app ───────────────────────────────────
+# ── Step 5: Start the app ───────────────────────────────────
 
 echo ""
 echo "🚀 TweetLoop is running!"
 echo "   → http://localhost:${PORT}"
+echo "   → Password: tweetloop (change it in Settings!)"
 echo ""
 .venv/bin/python3 app.py
