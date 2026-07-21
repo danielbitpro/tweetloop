@@ -59,7 +59,7 @@ All notable user-facing changes to TweetLoop.
 - Full favicon pack
 - SQLite storage with WAL mode and indexing
 - Password authentication with session management
-- Single codebase: SQLite (default) or Supabase PostgreSQL (optional)
+- Single codebase: SQLite storage (self-hosted, no external dependencies)
 - Pipeline bridge with deduplication and retry logic
 - One-command launcher (start.sh)
 - Systemd service template
