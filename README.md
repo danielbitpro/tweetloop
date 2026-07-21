@@ -1,5 +1,9 @@
 # TweetLoop
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/danielbitpro/tweetloop/master/static/tweetloop-logo.png" alt="TweetLoop Logo" width="120" style="border-radius: 24px;">
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.x-green.svg)](https://flask.palletsprojects.com/)
