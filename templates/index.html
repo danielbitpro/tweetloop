@@ -2381,17 +2381,24 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            showToast('Reading file...');
+            console.log('[IMPORT] File selected:', file.name, 'Size:', file.size, 'bytes');
+            showToast('Reading file: ' + file.name);
             
-            const content = await file.text();
-            const tweets = parseTweetsFromMarkdown(content, file.name);
-            
-            if (tweets.length === 0) {
-                showToast('No tweets found in file', true);
-                return;
-            }
-            
-            showToast(`Importing ${tweets.length} tweets...`);
+            try {
+                const content = await file.text();
+                console.log('[IMPORT] File read successfully, length:', content.length);
+                console.log('[IMPORT] First 200 chars:', content.substring(0, 200).replace(/\n/g, '\\n'));
+                
+                const tweets = parseTweetsFromMarkdown(content, file.name);
+                console.log('[IMPORT] Parser returned', tweets.length, 'tweets');
+                
+                if (tweets.length === 0) {
+                    console.log('[IMPORT] ERROR: No tweets found');
+                    showToast('No tweets found in file', true);
+                    return;
+                }
+                
+                showToast(`Importing ${tweets.length} tweets...`);
             
             let imported = 0;
             let skipped = 0;
