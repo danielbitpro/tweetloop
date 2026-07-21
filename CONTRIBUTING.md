@@ -6,21 +6,20 @@ Thank you for your interest in contributing!
 
 - Use GitHub Issues with clear titles
 - Include steps to reproduce for bugs
-- Specify your environment (Python version, OS, SQLite/Supabase mode)
+- Specify your environment (Python version, OS)
 - Screenshots welcome for UI issues
 
 ## Feature Requests
 
 - Open an issue with the `enhancement` label
 - Describe the problem and proposed solution
-- Note if it applies to OSS mode, paid mode, or both
 
 ## Pull Requests
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Test thoroughly — the app runs in two modes (SQLite offline, Supabase cloud)
+4. Test thoroughly
 5. Commit with clear messages (`git commit -m 'feat: add amazing feature'`)
 6. Push and open a PR
 
@@ -33,9 +32,9 @@ Thank you for your interest in contributing!
 
 ## Testing
 
-- Test in both SQLite and Supabase modes
+- Test the core workflow: create, edit, schedule, delete tweets
 - Verify password auth works
-- Check bridge script with sample pipeline output
+- Check the bridge script with sample pipeline output
 - Test auto-posting with preferred times and rate limits
 
 ## Questions?

@@ -57,10 +57,9 @@ All notable user-facing changes to TweetLoop.
 - Dark terminal theme with neon accents
 - HTTPS support with auto-detecting certs
 - Full favicon pack
-
-### Infrastructure
-- Dual auth mode (password / Supabase JWT)
-- Dual DB mode (SQLite / PostgreSQL)
+- SQLite storage with WAL mode and indexing
+- Password authentication with session management
+- Single codebase: SQLite (default) or Supabase PostgreSQL (optional)
 - Pipeline bridge with deduplication and retry logic
 - One-command launcher (start.sh)
 - Systemd service template
