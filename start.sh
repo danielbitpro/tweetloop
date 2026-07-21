@@ -1,33 +1,60 @@
 #!/usr/bin/env bash
-# TweetLoop — One-command launcher
+# TweetLoop — One-command install & launch
 #
-# Usage: ./start.sh          # runs on PORT (default 7777)
+# Usage: ./start.sh
 #
-# Prerequisites (run once):
-#   sudo apt update && sudo apt install -y python3 python3-pip python3.12-venv
+# What it does:
+#   1. Installs system dependencies (Python, pip, venv)
+#   2. Creates a virtual environment
+#   3. Installs Python dependencies
+#   4. Starts the Flask app
 #
-# This script:
-#   1. Creates a venv if it doesn't exist
-#   2. Installs dependencies if requirements aren't met
-#   3. Starts the Flask app
+# Prerequisites: None. Run this on a fresh Ubuntu/Debian machine.
 
 set -euo pipefail
 
 cd "$(dirname "$0")"
 PORT="${PORT:-7777}"
 
-# Create venv if missing
+echo "🔧 TweetLoop — setting you up..."
+echo ""
+
+# ── Step 1: System dependencies ──────────────────────────────
+
+if ! command -v python3 &>/dev/null; then
+    echo "📦 Installing Python 3, pip, and venv..."
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq python3 python3-pip python3.12-venv > /dev/null 2>&1
+fi
+
+# Detect actual Python version (could be 3.11, 3.12, 3.13, etc.)
+PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+VENV_PKG="python${PY_VERSION}-venv"
+
+# Install the version-specific venv package (Ubuntu 24.04+ requires this)
+if ! python3 -m venv --help &>/dev/null; then
+    echo "📦 Installing Python ${PY_VERSION} venv support..."
+    sudo apt-get install -y -qq "${VENV_PKG}" > /dev/null 2>&1
+fi
+
+# ── Step 2: Virtual environment ──────────────────────────────
+
 if [ ! -f .venv/bin/python3 ]; then
-    echo "📦 Creating virtual environment..."
+    echo "📦 Creating virtual environment (Python ${PY_VERSION})..."
     python3 -m venv .venv
 fi
 
-# Install deps if flask is not in venv
+# ── Step 3: Python dependencies ──────────────────────────────
+
 if ! .venv/bin/python3 -c "import flask" 2>/dev/null; then
-    echo "📦 Installing dependencies..."
+    echo "📦 Installing Python dependencies..."
     .venv/bin/python3 -m pip install -q -r requirements.txt
 fi
 
-# Start the app
-echo "🚀 Starting TweetLoop on port $PORT"
+# ── Step 4: Start the app ───────────────────────────────────
+
+echo ""
+echo "🚀 TweetLoop is running!"
+echo "   → http://localhost:${PORT}"
+echo ""
 .venv/bin/python3 app.py

@@ -42,15 +42,7 @@ A research-to-post content dashboard for X/Twitter. Research, review, edit, and 
 
 ## Quick Start
 
-### Prerequisites
-
-Python 3.10+ and venv support. On Ubuntu/Debian:
-
-```bash
-sudo apt update && sudo apt install -y python3 python3-pip python3.12-venv
-```
-
-### Install & Run
+One script. Zero dependencies. Here's all you need:
 
 ```bash
 git clone https://github.com/danielbitpro/tweetloop.git
@@ -63,7 +55,7 @@ chmod +x start.sh
 
 That's it. Navigate to `http://localhost:7777`.
 
-> **What `start.sh` does:** creates a venv if missing, installs dependencies from `requirements.txt`, then starts the Flask app. No manual activation needed.
+> **What `start.sh` does:** installs system dependencies (Python, pip, venv), creates a virtual environment, installs Python packages, and starts the app. No manual setup required.
 
 Optional: set `PORT=8080 ./start.sh` to change the port.
 
