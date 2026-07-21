@@ -42,66 +42,30 @@ A research-to-post content dashboard for X/Twitter. Research, review, edit, and 
 
 ## Quick Start
 
-### 1. Prerequisites
+### Prerequisites
 
-Install Python 3.10+, pip, and venv support:
+Python 3.10+ and venv support. On Ubuntu/Debian:
 
 ```bash
-sudo apt update
-sudo apt install python3 python3-pip python3.12-venv
+sudo apt update && sudo apt install -y python3 python3-pip python3.12-venv
 ```
 
-> **Note:** On Ubuntu 24.04+, `python3-venv` alone isn't enough — you need the version-specific `python3.12-venv` package.
-
-### 2. Clone & Install
+### Install & Run
 
 ```bash
 git clone https://github.com/danielbitpro/tweetloop.git
 cd tweetloop
-
-# Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 2. Configure
-
-Create a `.env` file from the example:
-
-```bash
 cp env.example .env
+# Edit .env → set PASSWORD=your_secure_password_here
+chmod +x start.sh
+./start.sh
 ```
 
-Edit `.env` and set at minimum:
+That's it. Navigate to `http://localhost:7777`.
 
-```bash
-PASSWORD=your_secure_password_here
-```
+> **What `start.sh` does:** creates a venv if missing, installs dependencies from `requirements.txt`, then starts the Flask app. No manual activation needed.
 
-Optional settings:
-
-```bash
-PORT=7777                    # App listening port (default: 7777)
-HTTPS_ENABLED=false          # Set true if you have certs/ directory
-```
-
-### 3. Run
-
-```bash
-# Option A: Run with venv's Python directly (recommended, no activation needed)
-.venv/bin/python3 app.py
-
-# Option B: Activate venv first, then use python3 normally
-source .venv/bin/activate
-python3 app.py
-```
-
-Navigate to `http://localhost:7777` (or `https://localhost:7777` with HTTPS).
-
-> **Note:** If you open a new terminal session, the venv won't be active. Use `.venv/bin/python3 app.py` to avoid this.
+Optional: set `PORT=8080 ./start.sh` to change the port.
 
 ### 4. Authorize Twitter (Optional — for posting from the app)
 
