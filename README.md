@@ -162,6 +162,10 @@ Tweets are stored in `data/tweetloop.db` (SQLite). The schema supports:
 - Archive with monthly purge
 - Source URL extraction
 
+## Known Issues
+
+- **Image paste not working** — The image upload feature (`/api/media/upload`) is not yet implemented. Pasting an image into the editor will not work. This is planned for a future release.
+
 ## Docker Support
 
 Coming soon.
