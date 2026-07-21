@@ -21,8 +21,8 @@ echo ""
 
 # ── Step 1: System dependencies ──────────────────────────────
 
-# Check if python3.venv module is available (not just python3)
-if ! python3 -c "import venv" 2>/dev/null; then
+# Check if ensurepip is available (this is what venv needs to create environments)
+if ! python3 -c "import ensurepip" 2>/dev/null; then
     echo "📦 Installing Python 3, pip, and venv support..."
     sudo apt-get update -qq
     PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
