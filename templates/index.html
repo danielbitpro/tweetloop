@@ -2441,9 +2441,8 @@
         function parseTweetsFromMarkdown(content, filename) {
             const tweets = [];
             
-            // Extract date from filename (e.g., "2026-07-18-final.md")
-            const dateMatch = filename.match(/(\d{4}-\d{2}-\d{2})/);
-            const dateStr = dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
+            // Always use today's date — imported tweets appear in today's group
+            const dateStr = new Date().toISOString().split('T')[0];
             
             // Split into blocks by "## N." headers
             const tweetBlocks = content.split(/(?=## \d+\. )/).filter(b => b.trim());
