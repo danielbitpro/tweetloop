@@ -26,7 +26,7 @@ A research-to-post content dashboard for X/Twitter. Research, review, edit, and 
 - 📋 **Export** — Raw, CSV, Pipeline format for approved tweets; JSON/CSV for all
 - 📦 **Archive** — Monthly CSV archive with download and purge
 - ⚙️ **Settings Panel** — Configurable research sources, auto-posting, export, pipeline paths
-- 🎨 **Dark Terminal Theme** — Dark terminal aesthetic with neon accents
+- 🎨 **Dark Terminal Theme** — Cyberpunk-inspired terminal aesthetic with neon accents
 
 ## Architecture
 

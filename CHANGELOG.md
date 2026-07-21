@@ -54,7 +54,7 @@ All notable user-facing changes to TweetLoop.
 - Pipeline bridge for auto-importing tweets
 - Password authentication with session management
 - SQLite storage with WAL mode and indexing
-- Dark Terminal dark terminal theme
+- Dark terminal theme with neon accents
 - HTTPS support with auto-detecting certs
 - Full favicon pack
 
