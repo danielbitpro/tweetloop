@@ -57,6 +57,7 @@
                 <button class="btn" onclick="showManualResearchModal()">🔍 QUICK RESEARCH</button>
                 <button class="btn btn-cyan" onclick="document.getElementById('import-file-input').click()">📥 IMPORT</button>
                 <input type="file" id="import-file-input" accept=".md,.txt,.json" style="display:none" onchange="handleImportFile(event)">
+                <button class="btn" id="fetch-btn" onclick="handleFetch()" title="Fetch today's pipeline file">🔄 FETCH</button>
                 <div class="export-dropdown">
                     <button class="btn" onclick="toggleExportMenu()">EXPORT</button>
                     <div class="export-menu" id="export-menu">
@@ -2563,6 +2564,49 @@
             console.log('[IMPORT DEBUG] Extracted', tweets.length, 'tweets');
             console.log('[IMPORT DEBUG] Tweets:', JSON.stringify(tweets.map(t => ({label: t.label, text: t.text?.substring(0, 50), source: t.source_url?.substring(0, 50)}))));
             return tweets;
+        }
+        
+        // ── Fetch from Pipeline Directory ──
+        async function handleFetch() {
+            const btn = document.getElementById('fetch-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ FETCHING...';
+            
+            try {
+                // First check if file exists
+                const statusResp = await fetch('/api/fetch/status', { credentials: 'include' });
+                const status = await statusResp.json();
+                
+                if (!status.exists) {
+                    showToast('❌ ' + (status.message || 'No pipeline file found for today'), true);
+                    btn.disabled = false;
+                    btn.textContent = '🔄 FETCH';
+                    return;
+                }
+                
+                showToast('📂 Found ' + status.filename + ' (' + status.size + ' bytes)');
+                
+                // Now fetch and import
+                const fetchResp = await fetch('/api/fetch', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (fetchResp.ok) {
+                    const data = await fetchResp.json();
+                    showToast('✅ ' + data.message);
+                    fetchTweets();
+                } else {
+                    const err = await fetchResp.json().catch(() => ({}));
+                    showToast('❌ Fetch failed: ' + (err.error || 'Unknown error'), true);
+                }
+            } catch (e) {
+                showToast('❌ Fetch failed: ' + e.message, true);
+                console.error('Fetch error:', e);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 FETCH';
+            }
         }
     </script>
 </body>

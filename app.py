@@ -117,6 +117,7 @@ DEFAULT_SETTINGS = {
         "deduplication_threshold": 0.8,
         "source_priority": ["twitter", "arxiv", "github_trending", "reddit", "huggingface", "youtube", "tech_blogs"],
         "language_filter": "en",
+        "output_directory": "",
     },
     "autopost": {
         "enable": False,
@@ -678,6 +679,168 @@ def health():
         'mode': 'supabase' if USE_SUPABASE else 'sqlite',
         'auth_mode': 'supabase' if (SUPABASE_URL and SUPABASE_SERVICE_KEY) else ('password' if USE_PASSWORD_AUTH else 'none'),
     })
+
+
+# ---------------------------------------------------------------------------
+# Fetch from pipeline directory
+# ---------------------------------------------------------------------------
+
+def get_pipeline_directory():
+    """Get the configured pipeline output directory from settings."""
+    try:
+        from database import get_settings as db_get_settings
+        from pipeline_to_app_bridge import DB_FILE
+        import json
+        
+        settings_file = DB_FILE.parent / "settings.json"
+        if not settings_file.exists():
+            return None
+        
+        with open(settings_file) as f:
+            settings = json.load(f)
+        
+        return settings.get('pipeline', {}).get('output_directory', '')
+    except:
+        return None
+
+
+@app.route('/api/fetch/status', methods=['GET'])
+@require_auth
+def fetch_status():
+    """Check if today's pipeline file exists."""
+    try:
+        from datetime import datetime
+        
+        today = datetime.now().strftime('%Y-%m-%d')
+        output_dir = get_pipeline_directory()
+        
+        if not output_dir:
+            return jsonify({'exists': False, 'message': 'No pipeline directory configured'})
+        
+        filename = f'{today}-final.md'
+        filepath = os.path.join(output_dir, filename)
+        
+        if os.path.exists(filepath):
+            size = os.path.getsize(filepath)
+            return jsonify({
+                'exists': True,
+                'filename': filename,
+                'path': filepath,
+                'size': size,
+            })
+        else:
+            return jsonify({'exists': False, 'message': f'No file found for today ({filename})'})
+    except Exception as e:
+        return jsonify({'exists': False, 'error': str(e)}), 500
+
+
+@app.route('/api/fetch', methods=['POST'])
+@require_auth
+def fetch_tweets():
+    """Fetch and import today's pipeline file."""
+    try:
+        from datetime import datetime
+        import re
+        
+        today = datetime.now().strftime('%Y-%m-%d')
+        output_dir = get_pipeline_directory()
+        
+        if not output_dir:
+            return jsonify({'error': 'No pipeline directory configured'}), 400
+        
+        filename = f'{today}-final.md'
+        filepath = os.path.join(output_dir, filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': f'File not found: {filename}'}), 404
+        
+        # Read file
+        with open(filepath, 'r') as f:
+            content = f.read()
+        
+        user_id = request.user_id
+        
+        # Parse using the same logic as handleImportFile
+        date_str = today
+        tweet_blocks = re.split(r'(?=## \d+\. )', content)
+        tweet_blocks = [b for b in tweet_blocks if b.strip()]
+        
+        imported = 0
+        errors = 0
+        
+        for block in tweet_blocks:
+            trimmed = block.strip()
+            if not trimmed:
+                continue
+            
+            # Extract section number
+            section_match = re.match(r'^## (\d+)\.', trimmed)
+            section_number = int(section_match.group(1)) if section_match else None
+            
+            # Extract label
+            label_match = re.search(r'\[([^\]]+)\]', trimmed)
+            label = label_match.group(1) if label_match else None
+            
+            # Extract tweet text
+            tweet_text_lines = []
+            hashtags = []
+            in_tweet_block = False
+            
+            for line in trimmed.split('\n'):
+                line_stripped = line.strip()
+                
+                if '**Tweet:**' in line_stripped and not in_tweet_block:
+                    in_tweet_block = True
+                    continue
+                
+                if in_tweet_block:
+                    if line_stripped.startswith('> '):
+                        text = line_stripped[2:].strip()
+                        if text.startswith('#'):
+                            hashtags.append(text)
+                        else:
+                            tweet_text_lines.append(text)
+                    elif line_stripped == '|' or line_stripped.startswith('> |'):
+                        in_tweet_block = False
+                        break
+            
+            # Clean up
+            while tweet_text_lines and not tweet_text_lines[0]:
+                tweet_text_lines.pop(0)
+            while tweet_text_lines and not tweet_text_lines[-1]:
+                tweet_text_lines.pop()
+            
+            text = '\n'.join(tweet_text_lines)
+            hashtags_str = ' '.join(hashtags)
+            
+            if text:
+                new_tweet = {
+                    'id': str(uuid.uuid4()),
+                    'text': text,
+                    'label': label,
+                    'hashtags': hashtags_str,
+                    'why_it_works': None,
+                    'section_number': section_number,
+                    'status': 'draft',
+                    'schedule_time': None,
+                    'source': 'fetch',
+                    'source_url': None,
+                    'date': date_str,
+                }
+                
+                result = db_create_tweet(user_id, new_tweet)
+                if result:
+                    imported += 1
+                else:
+                    errors += 1
+        
+        return jsonify({
+            'imported': imported,
+            'errors': errors,
+            'message': f'Fetched {imported} tweet(s) from {filename}',
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ---------------------------------------------------------------------------

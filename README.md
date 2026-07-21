@@ -117,9 +117,21 @@ XURL_APP_OAUTH1_SECRET=your_secret
 
 ## Integration with External Pipeline
 
-TweetLoop reads verified tweets from pipeline output files. The `pipeline_to_app_bridge.py` script imports them into the SQLite database.
+TweetLoop reads verified tweets from pipeline output files. Users can get tweets into the app in two ways:
 
-### Bridge Script
+### Option 1: IMPORT Button (Manual)
+
+Click the **📥 IMPORT** button in the header, select any `*-final.md` file, and the app will parse and import all tweets. This is a one-time operation — good for testing or ad-hoc imports.
+
+### Option 2: FETCH Button (Automated)
+
+Set your pipeline output directory in **Settings → Pipeline → Output Directory**, then click **🔄 FETCH**. The app will automatically find today's `*-final.md` file in that directory and import it. This is the primary workflow for users with an AI pipeline that generates daily output.
+
+> **Note:** The FETCH feature requires the Flask app to have filesystem access to the configured directory.
+
+### Bridge Script (Optional — for Cron Users)
+
+For users who prefer server-side automation, the `pipeline_to_app_bridge.py` script imports tweets into the SQLite database.
 
 ```bash
 # Configure paths (optional — defaults are sensible)
@@ -132,7 +144,7 @@ python3 pipeline_to_app_bridge.py
 
 ### Expected Input Format
 
-The bridge reads files matching `*-final.md` from the pipeline output directory. Each tweet should be formatted as:
+The pipeline should output files matching `*-final.md` in the configured directory. Each tweet should be formatted as:
 
 ```markdown
 ## X. [Label] | **Tweet:**
@@ -143,6 +155,31 @@ The bridge reads files matching `*-final.md` from the pipeline output directory.
 **Source:** [Name](url)
 **Why it works:** Brief explanation
 ```
+
+### Sample Output File
+
+A complete example of a `*-final.md` file:
+
+```markdown
+## 1. [Local LLM] | **Tweet:**
+> Fresh on HF: Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf — 35B parameters, 3B active, quantized to Q8. Runs on a single RTX 3090. Drop it straight into your local setup.
+
+**Source:** [Hugging Face](https://huggingface.co)
+**Why it works:** Concrete numbers + specific hardware requirement = high engagement in LocalLLaMA.
+
+## 2. [AI Agents] | **Tweet:**
+> vix: a new coding agent built specifically for local LLMs via Ollama + llama.cpp. Full agentic workflow, no cloud dependency. Self-hosted from day one.
+
+**Source:** [GitHub](https://github.com)
+**Why it works:** Names the agent, lists the stack, emphasizes self-hosting — hits all the right notes for the audience.
+```
+
+### How It Works
+
+1. Your AI pipeline (Hermes, LangChain, custom scripts, etc.) generates a `*-final.md` file with today's date (e.g., `2026-07-21-final.md`)
+2. The file is saved to the configured output directory
+3. In TweetLoop, click **🔄 FETCH** to automatically import today's tweets
+4. Review, edit, schedule, and post from the dashboard
 
 ## Settings
 
