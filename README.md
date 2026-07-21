@@ -47,19 +47,20 @@ One script. Zero dependencies. Here's all you need:
 ```bash
 git clone https://github.com/danielbitpro/tweetloop.git
 cd tweetloop
-cp env.example .env
-# Edit .env → set PASSWORD=your_secure_password_here
-chmod +x start.sh
 ./start.sh
 ```
 
-That's it. Navigate to `http://localhost:7777`.
+That's it. Navigate to `http://localhost:7777` and log in with the default password.
 
-> **What `start.sh` does:** installs system dependencies (Python, pip, venv), creates a virtual environment, installs Python packages, and starts the app. No manual setup required.
+> **What `start.sh` does:** installs system dependencies (Python, pip, venv), creates a virtual environment, generates a `.env` with a default password, installs Python packages, and starts the app. No manual setup required.
 
 Optional: set `PORT=8080 ./start.sh` to change the port.
 
-### 4. Authorize Twitter (Optional — for posting from the app)
+### Change the Password
+
+Change the password anytime from **⚙ Settings → App**. The default `tweetloop` password is for convenience — change it before exposing the app on a network.
+
+### Authorize Twitter (Optional — for posting from the app)
 
 To enable direct posting from the dashboard, run:
 
