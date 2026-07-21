@@ -448,16 +448,46 @@ def bridge():
 
     app_tweets = load_tweets()
     existing_keys = {t['text'] for t in app_tweets}
+    existing_by_id = {t['id']: t for t in app_tweets}
 
     new_count = 0
     duplicate_count = 0
     skipped_exact = 0
+    updated_count = 0
+
+    # Build a text->id map for quick lookup
+    text_to_id = {}
+    for t in app_tweets:
+        text_to_id[t['text']] = t['id']
 
     for tweet_data in pipeline_tweets:
         text = tweet_data['text']
         
-        # Check 1: Exact text match
+        # Check 1: Exact text match — update instead of skip
         if text in existing_keys:
+            tweet_id = text_to_id.get(text)
+            if tweet_id and tweet_id in existing_by_id:
+                existing = existing_by_id[tweet_id]
+                needs_update = False
+                update_fields = []
+                update_vals = []
+                
+                if not existing.get('source_url') and tweet_data.get('source_url'):
+                    update_fields.append('source_url = ?')
+                    update_vals.append(tweet_data['source_url'])
+                    needs_update = True
+                
+                if not existing.get('created_at'):
+                    update_fields.append('created_at = datetime(\'now\')')
+                    needs_update = True
+                
+                if needs_update:
+                    c = sqlite3.connect(DB_FILE).cursor()
+                    c.execute(f"UPDATE tweets SET {', '.join(update_fields)} WHERE id = ?", (update_vals + [tweet_id]))
+                    c.connection.commit()
+                    c.connection.close()
+                    updated_count += 1
+                    print(f"  ✏️ Updated existing tweet #{tweet_id[:8]} with source_url/created_at")
             skipped_exact += 1
             continue
         
@@ -487,17 +517,21 @@ def bridge():
         
         app_tweets.append(tweet_dict)
         existing_keys.add(text)
+        text_to_id[text] = tweet_dict['id']
         new_count += 1
 
     if new_count > 0:
         inserted = save_tweets(app_tweets)
         print(f"✓ Added {inserted} new tweets to the app.")
-        print(f"  - Exact duplicates skipped: {skipped_exact}")
+        print(f"  - Exact duplicates updated (source_url/created_at): {updated_count}")
+        print(f"  - Exact duplicates skipped (already complete): {skipped_exact - updated_count}")
         print(f"  - Similar duplicates skipped: {duplicate_count}")
         print(f"  Total tweets in app: {len(app_tweets)}")
     else:
         print("All pipeline tweets already exist in the app.")
-        print(f"  - Exact duplicates: {skipped_exact}")
+        print(f"  - Updated with source_url/created_at: {updated_count}")
+        print(f"  - Exact duplicates (already complete): {skipped_exact - updated_count}")
+        print(f"  - Similar duplicates skipped: {duplicate_count}")
         print(f"  - Similar duplicates: {duplicate_count}")
 
 

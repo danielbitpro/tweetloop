@@ -2471,10 +2471,14 @@
                         continue;
                     }
                     
-                    // Handle table format content rows (|| > text |)
-                    if (inTableFormat && tableSeparatorSeen && lineStripped.startsWith('||')) {
-                        // Extract content between || and |
-                        const innerContent = lineStripped.slice(2, -1).trim(); // Remove leading || and trailing |
+                    // Handle table format content rows (| > text | or || > text |)
+                    if (inTableFormat && tableSeparatorSeen && lineStripped.startsWith('|') && lineStripped.endsWith('|') && lineStripped.length > 2) {
+                        // Extract content between pipes
+                        let innerContent = lineStripped.slice(1, -1).trim(); // Remove leading | and trailing |
+                        // If it starts with |, remove it too (|| format)
+                        if (innerContent.startsWith('|')) {
+                            innerContent = innerContent.slice(1).trim();
+                        }
                         if (!innerContent) {
                             tweetTextLines.push('');
                         } else if (innerContent.startsWith('#')) {
@@ -2537,6 +2541,9 @@
                 }
             }
             
+            console.log('[IMPORT DEBUG] Found', tweetBlocks.length, 'blocks');
+            console.log('[IMPORT DEBUG] Extracted', tweets.length, 'tweets');
+            console.log('[IMPORT DEBUG] Tweets:', JSON.stringify(tweets.map(t => ({label: t.label, text: t.text?.substring(0, 50), source: t.source_url?.substring(0, 50)}))));
             return tweets;
         }
     </script>
