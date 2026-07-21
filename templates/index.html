@@ -2395,35 +2395,48 @@
                 
                 if (tweets.length === 0) {
                     showToast('❌ No tweets found in file', true);
+                    event.target.value = '';
                     return;
                 }
                 
                 showToast('📥 Importing ' + tweets.length + ' tweets...');
-            
-            let imported = 0;
-            let skipped = 0;
-            let errors = 0;
-            
-            for (const tweet of tweets) {
-                try {
-                    await fetch('/api/tweets', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(tweet)
-                    });
-                    imported++;
-                } catch (e) {
-                    errors++;
+                
+                let imported = 0;
+                let skipped = 0;
+                let errors = 0;
+                
+                for (const tweet of tweets) {
+                    try {
+                        const resp = await fetch('/api/tweets', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(tweet)
+                        });
+                        if (resp.ok) {
+                            imported++;
+                        } else {
+                            const err = await resp.json().catch(() => ({}));
+                            errors++;
+                            console.error('Import tweet failed:', err);
+                        }
+                    } catch (e) {
+                        errors++;
+                        console.error('Import tweet error:', e);
+                    }
                 }
+                
+                const msg = `✅ ${imported} imported${errors > 0 ? `, ${errors} errors` : ''}`;
+                showToast(msg);
+                fetchTweets();
+                
+                // Reset file input so same file can be imported again
+                event.target.value = '';
+            } catch (err) {
+                showToast('❌ Import failed: ' + err.message, true);
+                console.error('Import error:', err);
+                event.target.value = '';
             }
-            
-            const msg = `✅ ${imported} imported${skipped > 0 ? `, ${skipped} skipped` : ''}${errors > 0 ? `, ${errors} errors` : ''}`;
-            showToast(msg);
-            fetchTweets();
-            
-            // Reset file input so same file can be imported again
-            event.target.value = '';
         }
         
         function parseTweetsFromMarkdown(content, filename) {
