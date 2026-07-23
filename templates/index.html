@@ -80,6 +80,10 @@
         <!-- Search & Filter Bar -->
         <div class="search-bar">
             <input type="text" class="search-input" id="search-input" placeholder="> SEARCH TWEETS..." oninput="renderFilteredTweets()">
+            <select class="filter-select" id="filter-date" onchange="renderFilteredTweets()">
+                <option value="today">[TODAY]</option>
+                <option value="">[ALL DATES]</option>
+            </select>
             <select class="filter-select" id="filter-status" onchange="renderFilteredTweets()">
                 <option value="">[ALL STATUS]</option>
                 <option value="draft">[DRAFT]</option>
@@ -712,11 +716,16 @@
 
         function renderFilteredTweets() {
             const search = document.getElementById('search-input').value.toLowerCase();
+            const dateFilter = document.getElementById('filter-date').value;
             const statusFilter = document.getElementById('filter-status').value;
             const labelFilter = document.getElementById('filter-label').value;
 
+            const today = new Date().toISOString().slice(0, 10);
             let filtered = {};
             for (const date in allTweets) {
+                // Apply date filter
+                if (dateFilter === 'today' && date !== today) continue;
+                
                 const filteredTweets = allTweets[date].filter(t => {
                     if (statusFilter && t.status !== statusFilter) return false;
                     if (labelFilter && t.label !== labelFilter) return false;
