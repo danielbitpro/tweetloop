@@ -551,6 +551,19 @@ def update_tweet(user_id: str, tweet_id: str, updates: dict) -> Optional[dict]:
     for key in ("id", "user_id", "created_at"):
         updates.pop(key, None)
 
+    # Fetch current tweet to check its status before modifying
+    current = get_tweet(user_id, tweet_id)
+    if current and current.get("status") == "posted":
+        # Don't allow scheduling a posted tweet
+        updates.pop("schedule_time", None)
+    elif "schedule_time" in updates and updates["schedule_time"]:
+        # When schedule_time is set and status is not 'posted', mark as 'scheduled'
+        if updates.get("status") not in ("posted",):
+            updates["status"] = "scheduled"
+    elif "schedule_time" in updates and not updates["schedule_time"] and current and current.get("status") == "scheduled":
+        # When schedule_time is cleared and status is 'scheduled', revert to 'draft'
+        updates["status"] = "draft"
+
     result = update(
         "tweets",
         data=updates,
